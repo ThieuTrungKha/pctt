@@ -1,0 +1,1438 @@
+```html
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bản đồ tương tác</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #111;
+      }
+
+      :root {
+        --red: #e21d2f;
+        --dark: #111827;
+        --white: #fff;
+      }
+
+      /* =========================
+   KHUNG CHÍNH
+========================= */
+
+      .app {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #111;
+      }
+
+      /* =========================
+   MÀN HÌNH TỔNG QUAN
+========================= */
+
+      .overview {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #111;
+        transition:
+          opacity 0.55s ease,
+          visibility 0.55s ease;
+      }
+
+      .overview.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      /*
+   Bản đồ tổng thể
+*/
+      .map-wrapper {
+        position: relative;
+        width: min(96vw, 1800px);
+        height: min(94vh, 1000px);
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        overflow: visible;
+      }
+
+      .map {
+        position: relative;
+
+        width: 100%;
+        height: 100%;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .map img {
+        width: 100%;
+        height: 100%;
+
+        object-fit: contain;
+        user-select: none;
+        pointer-events: none;
+
+        filter: contrast(1.03);
+      }
+
+      /* =========================
+   MARKER
+========================= */
+
+      .marker {
+        position: absolute;
+
+        width: 30px;
+        height: 30px;
+
+        transform: translate(-50%, -50%);
+
+        border: 2px solid #fff;
+        border-radius: 50%;
+
+        background: var(--red);
+
+        color: #fff;
+
+        font-size: 12px;
+        font-weight: 800;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        cursor: pointer;
+
+        box-shadow:
+          0 4px 14px rgba(0, 0, 0, 0.45),
+          0 0 0 4px rgba(226, 29, 47, 0.22);
+
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+
+        z-index: 20;
+      }
+
+      .marker:hover {
+        transform: translate(-50%, -50%) scale(1.16);
+
+        box-shadow:
+          0 6px 18px rgba(0, 0, 0, 0.55),
+          0 0 0 7px rgba(226, 29, 47, 0.25);
+      }
+
+      .marker::after {
+        content: "";
+        position: absolute;
+
+        width: 9px;
+        height: 9px;
+
+        border-radius: 50%;
+
+        background: #fff;
+        opacity: 0.25;
+      }
+
+      /* =========================
+   VỊ TRÍ 16 ĐIỂM
+========================= */
+
+      /*
+   QUAN TRỌNG:
+   left/top là % trên bản đồ.
+
+   Sau khi có bản đồ thật,
+   chỉ cần chỉnh các giá trị này.
+*/
+
+      .p01 {
+        left: 70%;
+        top: 82%;
+      }
+      .p02 {
+        left: 66%;
+        top: 72%;
+      }
+      .p03 {
+        left: 62%;
+        top: 64%;
+      }
+      .p04 {
+        left: 56%;
+        top: 70%;
+      }
+
+      .p05 {
+        left: 54%;
+        top: 76%;
+      }
+      .p06 {
+        left: 60%;
+        top: 73%;
+      }
+      .p07 {
+        left: 64%;
+        top: 77%;
+      }
+      .p08 {
+        left: 47%;
+        top: 69%;
+      }
+
+      .p09 {
+        left: 47%;
+        top: 62%;
+      }
+      .p10 {
+        left: 41%;
+        top: 67%;
+      }
+      .p11 {
+        left: 48%;
+        top: 43%;
+      }
+      .p12 {
+        left: 37%;
+        top: 58%;
+      }
+
+      .p13 {
+        left: 51%;
+        top: 53%;
+      }
+      .p14 {
+        left: 57%;
+        top: 60%;
+      }
+      .p15 {
+        left: 33%;
+        top: 73%;
+      }
+      .p16 {
+        left: 44%;
+        top: 51%;
+      }
+
+      /* =========================
+   TIÊU ĐỀ
+========================= */
+
+      .title {
+        position: absolute;
+
+        left: 40px;
+        top: 32px;
+
+        z-index: 30;
+
+        color: #fff;
+
+        padding: 15px 22px;
+
+        background: rgba(17, 24, 39, 0.82);
+
+        border-left: 5px solid var(--red);
+
+        border-radius: 4px;
+
+        backdrop-filter: blur(8px);
+      }
+
+      .title h1 {
+        font-size: clamp(20px, 2vw, 32px);
+        letter-spacing: 0.5px;
+      }
+
+      .title p {
+        margin-top: 5px;
+
+        font-size: 13px;
+
+        opacity: 0.72;
+      }
+
+      /* =========================
+   MÀN HÌNH CHI TIẾT
+========================= */
+
+      .detail {
+        position: absolute;
+        inset: 0;
+
+        z-index: 50;
+
+        background: #111;
+
+        opacity: 0;
+        visibility: hidden;
+
+        pointer-events: none;
+
+        transition:
+          opacity 0.5s ease,
+          visibility 0.5s ease;
+      }
+
+      .detail.active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      /*
+   ẢNH ZOOM
+*/
+
+      .detail-image {
+        position: absolute;
+
+        left: 330px;
+        top: 50%;
+
+        width: calc(100% - 680px);
+        height: 82vh;
+
+        transform: translateY(-50%) scale(0.9);
+
+        object-fit: contain;
+
+        opacity: 0;
+
+        transition:
+          opacity 0.7s ease,
+          transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .detail.active .detail-image {
+        opacity: 1;
+
+        transform: translateY(-50%) scale(1);
+      }
+      /* =========================
+   VÒNG KHOANH
+========================= */
+
+      .highlight {
+        position: absolute;
+
+        /* Giảm width và height xuống (ví dụ: 90px hoặc 100px) */
+        width: 40px;
+        height: 40px;
+
+        border: 3px solid var(--red); /* có thể giảm viền từ 4px xuống 3px */
+
+        border-radius: 50%;
+
+        transform: translate(-50%, -50%) scale(0.4);
+
+        opacity: 0;
+
+        box-shadow:
+          0 0 0 4px rgba(226, 29, 47, 0.18),
+          0 0 20px rgba(226, 29, 47, 0.45);
+
+        transition:
+          transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 0.4s ease;
+
+        z-index: 70;
+
+        pointer-events: none;
+      }
+
+      .highlight.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      .highlight::before {
+        content: "";
+
+        position: absolute;
+
+        inset: 18px;
+
+        border: 1px dashed rgba(226, 29, 47, 0.65);
+
+        border-radius: 50%;
+      }
+
+      /* =========================
+   CALL OUT
+========================= */
+
+      /* =========================
+   CALL OUT
+========================= */
+      .callout {
+        position: absolute;
+        left: 30px;
+        top: 30px; /* Đẩy lên trên thay vì 50% */
+        width: 280px;
+        min-width: 280px;
+        max-width: 280px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.97);
+        color: #111827;
+        border-radius: 8px;
+        border-left: 5px solid #e21d2f;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        z-index: 90;
+        opacity: 0;
+        transform: translateY(-20px); /* Hiệu ứng trượt nhẹ từ trên xuống */
+        transition:
+          opacity 0.5s ease,
+          transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .callout.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .callout-label {
+        font-size: 12px;
+        font-weight: 800;
+
+        color: var(--red);
+
+        letter-spacing: 1.5px;
+
+        margin-bottom: 6px;
+      }
+
+      .callout-title {
+        font-size: 12px;
+        font-weight: 800;
+        white-space: pre-line;
+        line-height: 1.2;
+      }
+
+      .callout-text {
+        margin-top: 6px;
+
+        font-size: 14px;
+        line-height: 1.5;
+
+        color: #4b5563;
+      }
+
+      /*
+   Đường nối từ callout đến điểm
+*/
+
+      .callout-line {
+        position: absolute;
+
+        height: 3px;
+
+        background: var(--red);
+
+        transform-origin: left center;
+
+        z-index: 75;
+
+        opacity: 0;
+
+        transition: opacity 0.4s ease;
+      }
+
+      .callout-line.show {
+        opacity: 1;
+      }
+
+      /* =========================
+   NÚT QUAY LẠI
+========================= */
+
+      .back-button {
+        position: absolute;
+
+        left: 30px;
+        bottom: 30px;
+
+        z-index: 100;
+
+        border: none;
+
+        padding: 14px 22px;
+
+        border-radius: 6px;
+
+        background: rgba(17, 24, 39, 0.92);
+
+        color: #fff;
+
+        font-size: 14px;
+        font-weight: 700;
+
+        cursor: pointer;
+
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+
+        transition:
+          background 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .back-button:hover {
+        background: #000;
+        transform: translateY(-2px);
+      }
+
+      /* =========================
+   SỐ ĐIỂM TRÊN DETAIL
+========================= */
+
+      .detail-number {
+        position: absolute;
+
+        top: 30px;
+        right: 35px;
+
+        z-index: 90;
+
+        padding: 9px 14px;
+
+        border-radius: 4px;
+
+        background: rgba(17, 24, 39, 0.8);
+
+        color: #fff;
+
+        font-size: 13px;
+        font-weight: 700;
+
+        letter-spacing: 1px;
+      }
+
+      /* =========================
+   LOADING
+========================= */
+
+      .loading {
+        position: absolute;
+
+        inset: 0;
+
+        display: flex;
+
+        align-items: center;
+        justify-content: center;
+
+        background: #111;
+
+        z-index: 999;
+
+        color: #fff;
+
+        transition: opacity 0.5s ease;
+      }
+
+      .loading.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loader {
+        width: 42px;
+        height: 42px;
+
+        border: 4px solid rgba(255, 255, 255, 0.2);
+        border-top-color: #fff;
+
+        border-radius: 50%;
+
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* =========================
+   RESPONSIVE
+========================= */
+
+      @media (max-width: 700px) {
+        .title {
+          left: 15px;
+          top: 15px;
+          padding: 10px 14px;
+        }
+
+        .marker {
+          width: 40px;
+          height: 40px;
+          font-size: 13px;
+        }
+
+        .callout {
+          min-width: 210px;
+          max-width: 270px;
+        }
+
+        .callout-title {
+          font-size: 19px;
+        }
+
+        .back-button {
+          left: 15px;
+          bottom: 15px;
+        }
+      }
+      /* =========================================
+   ẢNH THỰC ĐỊA
+========================================= */
+
+      /* =========================================
+   ẢNH THỰC ĐỊA (Chuyển sang trái)
+========================================= */
+      .field-photos {
+        position: absolute;
+        left: 30px; /* Đặt sang mép trái cùng lề với callout */
+        top: 245px; /* Nằm ngay bên dưới callout (hoặc có thể dùng flexbox/chỉnh theo ý muốn) */
+        bottom: 85px; /* Giữ khoảng trống cho nút Quay lại ở góc dưới */
+        width: 280px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto; /* Cuộn nếu màn hình có chiều cao bé */
+        padding-right: 4px;
+        z-index: 90;
+        opacity: 0;
+        transform: translateX(-30px);
+        transition:
+          opacity 0.6s ease 0.3s,
+          transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+      }
+
+      /* Ẩn scrollbar cho gọn gàng */
+      .field-photos::-webkit-scrollbar {
+        width: 4px;
+      }
+      .field-photos::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+      }
+
+      .detail.active .field-photos {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .photo-card {
+        position: relative;
+        width: 100%;
+        height: 110px; /* Giảm nhẹ chiều cao để 3 ảnh vừa vặn hơn */
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #222;
+        border: 1.5px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+      }
+
+      .photo-card img {
+        width: 100%;
+        height: 100%;
+
+        object-fit: cover;
+
+        display: block;
+
+        transition: transform 0.35s ease;
+      }
+
+      .photo-card:hover img {
+        transform: scale(1.06);
+      }
+
+      /* Nhãn ảnh */
+
+      .photo-card::after {
+        position: absolute;
+
+        left: 10px;
+        bottom: 10px;
+
+        padding: 5px 9px;
+
+        border-radius: 4px;
+
+        background: rgba(0, 0, 0, 0.65);
+
+        color: #fff;
+
+        font-size: 11px;
+        font-weight: 700;
+
+        letter-spacing: 0.5px;
+      }
+
+      .photo-label {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+
+        padding: 5px 9px;
+
+        border-radius: 4px;
+
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+
+        font-size: 11px;
+        font-weight: 700;
+
+        letter-spacing: 0.5px;
+      }
+      /* =========================================
+   ẢNH ZOOM
+========================================= */
+
+      /* =========================================
+   ẢNH ZOOM (DETAIL IMAGE)
+========================================= */
+      .detail-image {
+        position: absolute;
+        left: 340px; /* Chừa khoảng trống bên trái cho Callout + Photos */
+        top: 50%;
+        width: calc(100% - 370px); /* Mở rộng toàn bộ khoảng trống sang phải */
+        height: 86vh;
+        transform: translateY(-50%) scale(0.92);
+        object-fit: contain;
+        opacity: 0;
+        transition:
+          opacity 0.7s ease,
+          transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 20;
+      }
+
+      .detail.active .detail-image {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+
+      /* =========================================
+   RESPONSIVE
+========================================= */
+
+      @media (max-width: 900px) {
+        .field-photos {
+          right: 15px;
+          width: 220px;
+        }
+
+        .photo-card {
+          height: 110px;
+        }
+
+        .detail-image {
+          left: 15px;
+
+          width: calc(100% - 260px);
+
+          height: calc(100% - 100px);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- LOADING -->
+      <div class="loading" id="loading">
+        <div class="loader"></div>
+      </div>
+
+      <!-- =========================
+         BẢN ĐỒ TỔNG QUAN
+    ========================== -->
+
+      <section class="overview" id="overview">
+        <div class="title">
+          <h1>BẢN ĐỒ KHU VỰC</h1>
+          <p>Chọn một điểm để xem chi tiết</p>
+        </div>
+
+        <div class="map-wrapper">
+          <div class="map" id="map">
+            <!-- THAY ẢNH NÀY -->
+            <img
+              id="mapImage"
+              src="assets/map-full.png"
+              alt="Bản đồ tổng quan"
+            />
+
+            <!-- 16 ĐIỂM -->
+
+            <button class="marker p01" data-point="1">01</button>
+
+            <button class="marker p02" data-point="2">02</button>
+
+            <button class="marker p03" data-point="3">03</button>
+
+            <button class="marker p04" data-point="4">04</button>
+
+            <button class="marker p05" data-point="5">05</button>
+
+            <button class="marker p06" data-point="6">06</button>
+
+            <button class="marker p07" data-point="7">07</button>
+
+            <button class="marker p08" data-point="8">08</button>
+
+            <button class="marker p09" data-point="9">09</button>
+
+            <button class="marker p10" data-point="10">10</button>
+
+            <button class="marker p11" data-point="11">11</button>
+
+            <button class="marker p12" data-point="12">12</button>
+
+            <button class="marker p13" data-point="13">13</button>
+
+            <button class="marker p14" data-point="14">14</button>
+
+            <button class="marker p15" data-point="15">15</button>
+
+            <button class="marker p16" data-point="16">16</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================
+         MÀN HÌNH CHI TIẾT
+    ========================== -->
+
+      <section class="detail" id="detail">
+        <!-- ẢNH ZOOM SẴN -->
+        <img class="detail-image" id="detailImage" src="" alt="" />
+
+        <!-- ẢNH THỰC ĐỊA -->
+        <div class="field-photos" id="fieldPhotos"></div>
+        <!-- VÒNG KHOANH -->
+        <div class="highlight" id="highlight"></div>
+
+        <!-- ĐƯỜNG NỐI CALLOUT -->
+        <div class="callout-line" id="calloutLine"></div>
+
+        <!-- CALLOUT -->
+        <div class="callout" id="callout">
+          <div class="callout-label" id="calloutLabel">ĐIỂM 01</div>
+
+          <div class="callout-title" id="calloutTitle">Điểm 01</div>
+
+          <div class="callout-text" id="calloutText">
+            Nội dung mô tả của điểm.
+          </div>
+        </div>
+
+        <div class="detail-number" id="detailNumber">ĐIỂM 01 / 16</div>
+
+        <button class="back-button" id="backButton">
+          ← QUAY LẠI BẢN ĐỒ TỔNG QUAN
+        </button>
+      </section>
+    </div>
+
+    <script>
+      /* ============================================================
+   DỮ LIỆU 16 ĐIỂM
+============================================================ */
+
+      /*
+   Bạn chỉ cần sửa phần này.
+
+   title:
+   Tên hiển thị.
+
+   description:
+   Nội dung bên dưới.
+
+   image:
+   Tên ảnh zoom tương ứng.
+
+   focus:
+   Vị trí điểm đỏ trên ẢNH ZOOM.
+
+   left/top tính theo %.
+
+   Ví dụ:
+   focus: {
+       x: 50,
+       y: 50
+   }
+
+   nghĩa là điểm đỏ nằm chính giữa ảnh.
+*/
+
+      const points = {
+        1: {
+          label: "KHU VỰC NGẬP LỤT",
+          title: "TDP Vinh Hiển",
+          description: [
+            "Khu vực: Bờ tràng cống ông Giảng",
+            "Tọa độ: 14.874187,108.909313",
+            "Nước chảy xiết và bị chia cắt mực nước sâu (1m)",
+          ],
+          image: "assets/1_hai_tan/1.jpg",
+
+          photos: [
+            {
+              image: "assets/1_hai_tan/1.1.jpg",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "assets/1_hai_tan/1.2.jpg",
+              title: "Bờ kè",
+            },
+            {
+              image: "assets/1_hai_tan/1.3.jpg",
+              title: "Đường vào khu dân cư",
+            },
+          ],
+
+          focus: { x: 59, y: 47 },
+        },
+
+        2: {
+          title: "Đập ngăn mặn - TDP An Quang",
+          description: [
+            "Ngập cục bộ",
+            "Tọa độ: 14.8418118,108.9687308",
+            "Số lô: 30, số khẩu: 90",
+            "Phương pháp di dời: Đến Ban CHQS phường Trà Câu",
+          ],
+          image: "assets/2_dap_ngan_man/2.jpg",
+
+          photos: [
+            {
+              image: "assets/2_dap_ngan_man/2.1.jpg",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "assets/2_dap_ngan_man/2.2.jpg",
+              title: "Bờ kè",
+            },
+            {
+              image: "assets/2_dap_ngan_man/2.3.jpg",
+              title: "Đường vào khu dân cư",
+            },
+          ],
+
+          focus: { x: 50, y: 50 },
+        },
+
+        3: {
+          title: "Cầu đò mốc - TDP An Quang",
+          description: [
+            "Ngập cục bộ",
+            "Tọa độ: 14.8517564,108.9628075",
+            "Số lô: 30, số khẩu: 90",
+            "Phương pháp di dời: Đến Ban CHQS phường Trà Câu",
+          ],
+          image: "assets/3_cau_do_moc/3.jpg",
+
+          photos: [
+            {
+              image: "assets/3_cau_do_moc/3.1.jpg",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "assets/3_cau_do_moc/3.2.jpg",
+              title: "Đường vào khu dân cư",
+            },
+            {
+              image: "assets/3_cau_do_moc/3.3.jpg",
+              title: "Cầu đò mốc",
+            },
+          ],
+
+          focus: { x: 50, y: 50 },
+        },
+
+        4: {
+          title: "Sông Trà Câu - TDP Đông Quang",
+          description: [
+            "Ngập cục bộ",
+            "Tọa độ: 14.8306736,108.9660557",
+            "Số lô: 30, số khẩu: 90",
+            "Phương pháp di dời: Đến Ban CHQS phường Trà Câu",
+          ],
+          image: "assets/4_song_tra_cau/4.jpg",
+
+          photos: [
+            {
+              image: "assets/4_song_tra_cau/4.1.jpg",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "assets/4_song_tra_cau/4.2.jpg",
+              title: "Đường vào khu dân cư",
+            },
+            {
+              image: "assets/4_song_tra_cau/4.3.jpg",
+              title: "khu vực ngập",
+            },
+          ],
+
+          focus: { x: 50, y: 50 },
+        },
+
+        5: {
+          title: "Cánh đồng - TDP Đông Quang",
+          description: [
+            "Ngập cục bộ",
+            "Tọa độ: 14.8450718,108.9463278",
+            "Số lô: 30, số khẩu: 90",
+            "Phương pháp di dời: Đến Ban CHQS phường Trà Câu",
+          ],
+          image: "assets/5_canh_dong/5.jpg",
+
+          photos: [
+            {
+              image: "assets/5_canh_dong/5.1.jpg",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "assets/5_canh_dong/5.2.jpg",
+              title: "Đường vào khu dân cư",
+            },
+            {
+              image: "assets/5_canh_dong/5.3.jpg",
+              title: "khu vực ngập",
+            },
+          ],
+
+          focus: { x: 50, y: 50 },
+        },
+
+        6: {
+          title: "Khu vực rất thấp - TDP Thủy Triều",
+          description: [
+            "Ngập cục bộ",
+            "Tọa độ: 14.8382746,108.9587717",
+            "Số lô: 30, số khẩu: 90",
+            "Phương pháp di dời: Đến Ban CHQS phường Trà Câu",
+          ],
+          image: "assets/5_canh_dong/5.jpg",
+
+          photos: [
+            {
+              image: "assets/5_canh_dong/5.1.jpg",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "assets/5_canh_dong/5.2.jpg",
+              title: "Đường vào khu dân cư",
+            },
+            {
+              image: "assets/5_canh_dong/5.3.jpg",
+              title: "khu vực ngập",
+            },
+          ],
+
+          focus: { x: 50, y: 50 },
+        },
+
+        7: {
+          title: "Điểm 07",
+          description: "Nội dung mô tả của điểm 07.",
+          image: "assets/point-07.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        8: {
+          title: "Điểm 08",
+          description: "Nội dung mô tả của điểm 08.",
+          image: "assets/point-08.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        9: {
+          title: "Điểm 09",
+          description: "Nội dung mô tả của điểm 09.",
+          image: "assets/point-09.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        10: {
+          title: "Điểm 10",
+          description: "Nội dung mô tả của điểm 10.",
+          image: "assets/point-10.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        11: {
+          title: "Điểm 11",
+          description: "Nội dung mô tả của điểm 11.",
+          image: "assets/point-11.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        12: {
+          title: "Điểm 12",
+          description: "Nội dung mô tả của điểm 12.",
+          image: "assets/point-12.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        13: {
+          title: "Điểm 13",
+          description: "Nội dung mô tả của điểm 13.",
+          image: "assets/point-13.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        14: {
+          title: "Điểm 14",
+          description: "Nội dung mô tả của điểm 14.",
+          image: "assets/point-14.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        15: {
+          title: "Điểm 15",
+          description: "Nội dung mô tả của điểm 15.",
+          image: "assets/point-15.jpg",
+          focus: { x: 50, y: 50 },
+        },
+
+        16: {
+          title: "Điểm 16",
+          description: "Nội dung mô tả của điểm 16.",
+          image: "assets/point-16.jpg",
+          focus: { x: 50, y: 50 },
+        },
+      };
+
+      /* ============================================================
+   ELEMENTS
+============================================================ */
+
+      const overview = document.getElementById("overview");
+      const detail = document.getElementById("detail");
+
+      const detailImage = document.getElementById("detailImage");
+      const fieldPhotos = document.getElementById("fieldPhotos");
+      const highlight = document.getElementById("highlight");
+
+      const callout = document.getElementById("callout");
+      const calloutLine = document.getElementById("calloutLine");
+
+      const calloutLabel = document.getElementById("calloutLabel");
+      const calloutTitle = document.getElementById("calloutTitle");
+      const calloutText = document.getElementById("calloutText");
+
+      const detailNumber = document.getElementById("detailNumber");
+
+      const backButton = document.getElementById("backButton");
+
+      const loading = document.getElementById("loading");
+
+      /* ============================================================
+   PRELOAD ẢNH
+============================================================ */
+
+      function preloadImages() {
+        const images = [];
+
+        images.push("assets/map-full.jpg");
+
+        Object.values(points).forEach((point) => {
+          images.push(point.image);
+        });
+
+        let loaded = 0;
+
+        images.forEach((src) => {
+          const img = new Image();
+
+          img.onload = img.onerror = () => {
+            loaded++;
+
+            if (loaded >= images.length) {
+              setTimeout(() => {
+                loading.classList.add("hide");
+              }, 300);
+            }
+          };
+
+          img.src = src;
+        });
+      }
+
+      /* ============================================================
+   BẮT ĐẦU
+============================================================ */
+
+      preloadImages();
+
+      /* ============================================================
+   CLICK MARKER
+============================================================ */
+
+      document.querySelectorAll(".marker").forEach((marker) => {
+        marker.addEventListener("click", () => {
+          const number = Number(marker.dataset.point);
+
+          openPoint(number, marker);
+        });
+      });
+
+      /* ============================================================
+   MỞ ĐIỂM
+============================================================ */
+
+      function openPoint(number, marker) {
+        const point = points[number];
+
+        if (!point) return;
+
+        /*
+       Lấy vị trí marker trên màn hình
+    */
+
+        const markerRect = marker.getBoundingClientRect();
+
+        /*
+       Tọa độ trung tâm marker
+    */
+
+        const startX = markerRect.left + markerRect.width / 2;
+
+        const startY = markerRect.top + markerRect.height / 2;
+
+        /*
+       Chuẩn bị dữ liệu
+    */
+
+        detailImage.src = point.image;
+
+        detailImage.alt = point.title;
+        /* ================================
+   LOAD 3 ẢNH THỰC ĐỊA
+================================ */
+
+        fieldPhotos.innerHTML = "";
+
+        if (point.photos && point.photos.length > 0) {
+          point.photos.forEach((photo) => {
+            const card = document.createElement("div");
+            card.className = "photo-card";
+
+            const img = document.createElement("img");
+            img.src = photo.image;
+            img.alt = photo.title || "";
+
+            const label = document.createElement("div");
+            label.className = "photo-label";
+            label.textContent = photo.title || "";
+
+            card.appendChild(img);
+            card.appendChild(label);
+
+            fieldPhotos.appendChild(card);
+          });
+        }
+        calloutLabel.textContent =
+          point.label || `ĐIỂM ${String(number).padStart(2, "0")}`;
+        calloutTitle.textContent = point.title;
+
+        calloutText.innerHTML = point.description
+          .map((item) => `- ${item}`)
+          .join("<br>");
+        detailNumber.textContent = `ĐIỂM ${String(number).padStart(2, "0")} / 16`;
+
+        /*
+       Hiện màn hình detail
+    */
+
+        detail.classList.add("active");
+
+        overview.classList.add("hidden");
+
+        /*
+       Reset animation
+    */
+
+        highlight.classList.remove("show");
+
+        callout.classList.remove("show");
+
+        calloutLine.classList.remove("show");
+
+        /*
+       Đợi ảnh detail render
+    */
+
+        detailImage.onload = () => {
+          requestAnimationFrame(() => {
+            positionHighlight(point);
+          });
+        };
+
+        /*
+       Nếu ảnh đã cache
+    */
+
+        if (detailImage.complete) {
+          setTimeout(() => {
+            positionHighlight(point);
+          }, 50);
+        }
+      }
+
+      /* ============================================================
+   ĐẶT VÒNG KHOANH & VẼ ĐƯỜNG NỐI
+============================================================ */
+
+      function positionHighlight(point) {
+        const x = point.focus.x;
+        const y = point.focus.y;
+
+        // Lấy vị trí và kích thước thực tế của ảnh zoom
+        const imageRect = detailImage.getBoundingClientRect();
+
+        // Tính tọa độ tâm của vòng tròn đỏ trên màn hình
+        const targetX = imageRect.left + imageRect.width * (x / 100);
+        const targetY = imageRect.top + imageRect.height * (y / 100);
+
+        // Đặt vòng tròn đỏ chính xác theo ảnh
+        highlight.style.left = `${targetX}px`;
+        highlight.style.top = `${targetY}px`;
+
+        // Hiển thị vòng khoanh
+        setTimeout(() => {
+          highlight.classList.add("show");
+        }, 250);
+
+        // Đặt callout và vẽ đường line nối đến tâm vòng tròn
+        positionCallout(targetX, targetY);
+      }
+
+      function positionCallout(targetX, targetY) {
+        callout.style.left = "30px";
+        callout.style.top = "30px"; // Đặt ở top 30px thay vì 50%
+
+        setTimeout(() => {
+          callout.classList.add("show");
+          drawCalloutLine(targetX, targetY);
+        }, 600);
+      }
+
+      function drawCalloutLine(targetX, targetY) {
+        const calloutRect = callout.getBoundingClientRect();
+
+        // Điểm bắt đầu: mép phải giữa khung callout
+        const startX = calloutRect.right;
+        const startY = calloutRect.top + calloutRect.height / 2;
+
+        // Khoảng cách và góc nghiêng nối thẳng vào tâm vòng tròn đỏ
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+        calloutLine.style.left = `${startX}px`;
+        calloutLine.style.top = `${startY}px`;
+        calloutLine.style.width = `${distance}px`;
+        calloutLine.style.transform = `rotate(${angle}deg)`;
+
+        calloutLine.classList.add("show");
+      }
+
+      /* ============================================================
+   QUAY LẠI
+============================================================ */
+
+      backButton.addEventListener("click", closePoint);
+
+      function closePoint() {
+        /*
+       Ẩn các thành phần detail
+    */
+
+        highlight.classList.remove("show");
+
+        callout.classList.remove("show");
+
+        calloutLine.classList.remove("show");
+
+        /*
+       Tắt màn hình detail
+    */
+
+        detail.classList.remove("active");
+
+        /*
+       Đợi animation rồi hiện bản đồ
+    */
+
+        setTimeout(() => {
+          overview.classList.remove("hidden");
+        }, 250);
+      }
+
+      /* ============================================================
+   ESC = QUAY LẠI
+============================================================ */
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (detail.classList.contains("active")) {
+            closePoint();
+          }
+        }
+      });
+
+      /* ============================================================
+   RESPONSIVE
+============================================================ */
+
+      window.addEventListener("resize", () => {
+        if (detail.classList.contains("active")) {
+          const currentLabel = detailNumber.textContent;
+
+          const number = parseInt(currentLabel.match(/\d+/)[0]);
+
+          if (points[number]) {
+            positionHighlight(points[number]);
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
+```

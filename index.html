@@ -1,0 +1,3432 @@
+```html
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bản đồ tương tác</title>
+
+    <style>
+      .zoom-img {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .zoom-img.show {
+        display: flex;
+      }
+
+      .zoom-img img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+      }
+
+      .zoom-img span {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        color: white;
+        font-size: 40px;
+        cursor: pointer;
+      }
+      .photo-card img {
+        cursor: zoom-in;
+        transition: transform 0.3s ease;
+      }
+
+      .photo-card img:active {
+        transform: scale(2);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #111;
+      }
+
+      :root {
+        --red: #e21d2f;
+        --dark: #111827;
+        --white: #fff;
+      }
+
+      /* =========================
+   KHUNG CHÍNH
+========================= */
+
+      .app {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #111;
+      }
+
+      /* =========================
+   MÀN HÌNH TỔNG QUAN
+========================= */
+
+      .overview {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #111;
+        transition:
+          opacity 0.55s ease,
+          visibility 0.55s ease;
+      }
+
+      .overview.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      /*
+   Bản đồ tổng thể
+*/
+      .map-wrapper {
+        position: relative;
+        width: min(96vw, 1800px);
+        height: min(94vh, 1000px);
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        overflow: visible;
+      }
+
+      .map {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        transform-origin: 0 0;
+        cursor: grab;
+
+        /* Tăng tốc phần cứng GPU, khử răng cưa và chống giật */
+        will-change: transform;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .map img {
+        width: 100%;
+        height: 100%;
+
+        object-fit: contain;
+        user-select: none;
+        pointer-events: none;
+
+        filter: contrast(1.03);
+      }
+
+      /* =========================
+   MARKER
+========================= */
+
+      .marker {
+        position: absolute;
+
+        width: 15px;
+        height: 15px;
+
+        transform: translate(-50%, -50%);
+
+        border: 2px solid #fff;
+        border-radius: 50%;
+
+        background: var(--red);
+
+        color: #fff;
+
+        font-size: 6px;
+        font-weight: 800;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        cursor: pointer;
+
+        box-shadow:
+          0 4px 14px rgba(0, 0, 0, 0.45),
+          0 0 0 4px rgba(226, 29, 47, 0.22);
+
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+
+        z-index: 20;
+      }
+
+      .marker:hover {
+        transform: translate(-50%, -50%) scale(1.16);
+
+        box-shadow:
+          0 6px 18px rgba(0, 0, 0, 0.55),
+          0 0 0 7px rgba(226, 29, 47, 0.25);
+      }
+
+      .marker::after {
+        content: "";
+        position: absolute;
+
+        width: 9px;
+        height: 9px;
+
+        border-radius: 50%;
+
+        background: #fff;
+        opacity: 0.25;
+      }
+
+      /* =========================
+   VỊ TRÍ 16 ĐIỂM
+========================= */
+
+      /*
+   QUAN TRỌNG:
+   left/top là % trên bản đồ.
+
+   Sau khi có bản đồ thật,
+   chỉ cần chỉnh các giá trị này.
+*/
+
+      .p01 {
+        left: 44%;
+        top: 62%;
+      }
+      .p02 {
+        left: 41%;
+        top: 61%;
+      }
+      .p03 {
+        left: 47%;
+        top: 64%;
+      }
+      .p04 {
+        left: 40%;
+        top: 78%;
+      }
+
+      .p05 {
+        left: 42%;
+        top: 72%;
+      }
+      .p06 {
+        left: 45%;
+        top: 73%;
+      }
+      .p07 {
+        left: 46%;
+        top: 77%;
+      }
+      .p08 {
+        left: 48%;
+        top: 78%;
+      }
+
+      .p09 {
+        left: 56%;
+        top: 85%;
+      }
+      .p10 {
+        left: 53%;
+        top: 69%;
+      }
+      .p11 {
+        left: 43%;
+        top: 43%;
+      }
+      .p12 {
+        left: 37%;
+        top: 75%;
+      }
+
+      .p13 {
+        left: 52%;
+        top: 84%;
+      }
+      .p14 {
+        left: 62%;
+        top: 66%;
+      }
+      .p15 {
+        left: 64%;
+        top: 73%;
+      }
+      .p16 {
+        left: 63%;
+        top: 80%;
+      }
+      .p17 {
+        left: 43%;
+        top: 70%;
+      }
+      .p18 {
+        left: 39%;
+        top: 71%;
+      }
+      .p19 {
+        left: 34%;
+        top: 69%;
+      }
+      .p20 {
+        left: 51%;
+        top: 75%;
+      }
+      .p21 {
+        left: 56%;
+        top: 69%;
+      }
+      .p22 {
+        left: 58%;
+        top: 69%;
+      }
+      .p23 {
+        left: 40%;
+        top: 57%;
+      }
+      .p24 {
+        left: 61%;
+        top: 81%;
+      }
+      .p25 {
+        left: 59%;
+        top: 84%;
+      }
+      .p26 {
+        left: 38%;
+        top: 77%;
+      }
+      .p27 {
+        left: 68%;
+        top: 86%;
+      }
+      .p28 {
+        left: 51%;
+        top: 32%;
+      }
+      .p29 {
+        left: 51%;
+        top: 35%;
+      }
+      .p30 {
+        left: 41%;
+        top: 65%;
+      }
+      .p31 {
+        left: 41%;
+        top: 68%;
+      }
+      .p32 {
+        left: 65%;
+        top: 69%;
+      }
+      .p33 {
+        left: 65%;
+        top: 72%;
+      }
+      .p34 {
+        left: 46%;
+        top: 67%;
+      }
+      .p35 {
+        left: 46%;
+        top: 70%;
+      }
+      .p36 {
+        left: 47%;
+        top: 69%;
+      }
+      .p37 {
+        left: 54%;
+        top: 71%;
+      }
+      .p38 {
+        left: 70%;
+        top: 94%;
+      }
+
+      /* =========================
+   TIÊU ĐỀ
+========================= */
+
+      .title {
+        position: absolute;
+
+        left: 40px;
+        top: 32px;
+
+        z-index: 30;
+
+        color: #fff;
+
+        padding: 15px 22px;
+
+        background: rgba(17, 24, 39, 0.82);
+
+        border-left: 5px solid var(--red);
+
+        border-radius: 4px;
+
+        backdrop-filter: blur(8px);
+      }
+
+      .title h1 {
+        font-size: clamp(20px, 2vw, 32px);
+        letter-spacing: 0.5px;
+      }
+
+      .title p {
+        margin-top: 5px;
+
+        font-size: 13px;
+
+        opacity: 0.72;
+      }
+
+      /* =========================
+   MÀN HÌNH CHI TIẾT
+========================= */
+
+      .detail {
+        position: absolute;
+        inset: 0;
+
+        z-index: 50;
+
+        background: #111;
+
+        opacity: 0;
+        visibility: hidden;
+
+        pointer-events: none;
+
+        transition:
+          opacity 0.5s ease,
+          visibility 0.5s ease;
+      }
+
+      .detail.active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      /*
+   ẢNH ZOOM
+*/
+
+      /* =========================================
+   ẢNH ZOOM (DETAIL IMAGE)
+========================================= */
+      .detail-image {
+        position: absolute;
+        left: 340px;
+        top: 50%;
+        /* Chiều rộng bằng toàn màn hình trừ đi phần lề 2 bên (340px trái + 340px phải) */
+        width: calc(100% - 680px);
+        max-width: calc(100% - 680px);
+        height: 86vh;
+
+        transform: translateY(-50%) scale(0.92);
+        object-fit: contain;
+        opacity: 0;
+
+        transition:
+          opacity 0.7s ease,
+          transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+
+        z-index: 20;
+      }
+
+      .detail.active .detail-image {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+      /* =========================
+   VÒNG KHOANH
+========================= */
+
+      .highlight {
+        position: absolute;
+
+        /* Giảm width và height xuống (ví dụ: 90px hoặc 100px) */
+        width: 40px;
+        height: 40px;
+
+        border: 3px solid #00e335; /* có thể giảm viền từ 4px xuống 3px */
+
+        border-radius: 50%;
+
+        transform: translate(-50%, -50%) scale(0.4);
+
+        opacity: 0;
+
+        box-shadow:
+          0 0 0 4px rgba(29, 226, 78, 0.18),
+          0 0 20px rgba(29, 226, 65, 0.45);
+
+        transition:
+          transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 0.4s ease;
+
+        z-index: 70;
+
+        pointer-events: none;
+      }
+
+      .highlight.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      .highlight::before {
+        content: "";
+
+        position: absolute;
+
+        inset: 18px;
+
+        border: 1px dashed rgba(226, 29, 47, 0.65);
+
+        border-radius: 50%;
+      }
+
+      /* =========================
+   CALL OUT
+========================= */
+
+      /* =========================
+   CALL OUT
+========================= */
+      .callout {
+        position: absolute;
+        left: 30px;
+        top: 10px; /* Đẩy sát mép trên một chút */
+        width: 280px;
+        min-width: 280px;
+        max-width: 280px;
+
+        /* --- CÁC THUỘC TÍNH BÓP NHỎ VÀ TẠO SCROLL --- */
+        max-height: 225px; /* Giới hạn chiều cao tối đa không vượt quá mép trên của khối ảnh (top: 245px) */
+        overflow-y: auto; /* Tự động hiện thanh cuộn nếu văn bản dài */
+        overscroll-behavior: contain;
+        /* --------------------------------------------- */
+
+        padding: 12px 16px; /* Giảm nhẹ padding cho gọn */
+        background: rgba(255, 255, 255, 0.97);
+        color: #111827;
+        border-radius: 8px;
+        border-left: 5px solid #00e335;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        z-index: 90;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition:
+          opacity 0.5s ease,
+          transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .callout::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .callout::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+      }
+      .callout.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      /* =========================
+   CALLOUT BÊN PHẢI
+========================= */
+
+      .right-callout {
+        left: auto;
+        right: 30px;
+      }
+      .callout-label {
+        font-size: 12px;
+        font-weight: 800;
+
+        color: #121312;
+
+        letter-spacing: 1.5px;
+
+        margin-bottom: 6px;
+      }
+
+      .callout-title {
+        font-size: 12px;
+        font-weight: 800;
+        white-space: pre-line;
+        line-height: 1.2;
+      }
+
+      .callout-text {
+        margin-top: 6px;
+
+        font-size: 14px;
+        line-height: 1.5;
+
+        color: #4b5563;
+      }
+
+      /*
+   Đường nối từ callout đến điểm
+*/
+
+      .callout-line {
+        position: absolute;
+
+        height: 3px;
+
+        background: #00e335;
+
+        transform-origin: left center;
+
+        z-index: 75;
+
+        opacity: 0;
+
+        transition: opacity 0.4s ease;
+      }
+
+      .callout-line.show {
+        opacity: 1;
+      }
+
+      /* =========================
+   NÚT QUAY LẠI
+========================= */
+
+      .back-button {
+        position: absolute;
+
+        left: 30px;
+        bottom: 30px;
+
+        z-index: 100;
+
+        border: none;
+
+        padding: 14px 22px;
+
+        border-radius: 6px;
+
+        background: rgba(17, 24, 39, 0.92);
+
+        color: #fff;
+
+        font-size: 14px;
+        font-weight: 700;
+
+        cursor: pointer;
+
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+
+        transition:
+          background 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .back-button:hover {
+        background: #000;
+        transform: translateY(-2px);
+      }
+
+      /* =========================
+   SỐ ĐIỂM TRÊN DETAIL
+========================= */
+
+      .detail-number {
+        position: absolute;
+        top: 25px;
+        left: 50%;
+        transform: translateX(-50%); /* Đưa ra chính giữa mép trên màn hình */
+        z-index: 90;
+        padding: 9px 16px;
+        border-radius: 4px;
+        background: rgba(17, 24, 39, 0.85);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+      /* =========================
+   LOADING
+========================= */
+
+      .loading {
+        position: absolute;
+
+        inset: 0;
+
+        display: flex;
+
+        align-items: center;
+        justify-content: center;
+
+        background: #111;
+
+        z-index: 999;
+
+        color: #fff;
+
+        transition: opacity 0.5s ease;
+      }
+
+      .loading.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loader {
+        width: 42px;
+        height: 42px;
+
+        border: 4px solid rgba(255, 255, 255, 0.2);
+        border-top-color: #fff;
+
+        border-radius: 50%;
+
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* =========================
+   RESPONSIVE
+========================= */
+
+      /* Đưa các nhóm màu ra ngoài CSS chung để cả Desktop và Mobile đều nhận */
+      .marker.group-red {
+        background: #e53935;
+        color: white;
+      }
+
+      .marker.group-orange {
+        background: #fb8c00;
+        color: white;
+      }
+
+      .marker.group-yellow {
+        background: #fdd835;
+        color: #222;
+      }
+
+      .marker.group-blue {
+        background: #1e88e5;
+        color: white;
+      }
+
+      .marker.group-green {
+        background: #43a047;
+        color: white;
+      }
+
+      .marker.group-purple {
+        background: #8e44ad;
+        color: white;
+      }
+      .marker.group-green1 {
+        background: #00ff51;
+        color: white;
+      }
+
+      /* Phần media query viết lại chuẩn cú pháp phẳng */
+      @media (max-width: 700px) {
+        .title {
+          left: 15px;
+          top: 15px;
+          padding: 10px 14px;
+        }
+
+        .marker {
+          width: 40px;
+          height: 40px;
+          font-size: 13px;
+        }
+
+        .callout {
+          min-width: 210px;
+          max-width: 270px;
+        }
+
+        .callout-title {
+          font-size: 19px;
+        }
+
+        .back-button {
+          left: 15px;
+          bottom: 15px;
+        }
+      }
+      /* ===== MÀU CÁC NHÓM ĐIỂM ===== */
+
+      /* =========================================
+   ẢNH THỰC ĐỊA
+========================================= */
+
+      /* =========================================
+   ẢNH THỰC ĐỊA (Chuyển sang trái)
+========================================= */
+      .field-photos {
+        position: absolute;
+        left: 30px; /* Đặt sang mép trái cùng lề với callout */
+        top: 245px; /* Nằm ngay bên dưới callout (hoặc có thể dùng flexbox/chỉnh theo ý muốn) */
+        bottom: 85px; /* Giữ khoảng trống cho nút Quay lại ở góc dưới */
+        width: 280px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto; /* Cuộn nếu màn hình có chiều cao bé */
+        padding-right: 4px;
+        z-index: 90;
+        opacity: 0;
+        transform: translateX(-30px);
+        transition:
+          opacity 0.6s ease 0.3s,
+          transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+      }
+
+      /* Ẩn scrollbar cho gọn gàng */
+      .field-photos::-webkit-scrollbar {
+        width: 4px;
+      }
+      .field-photos::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+      }
+
+      .detail.active .field-photos {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      /* =========================
+   ẢNH THỰC ĐỊA BÊN PHẢI
+========================= */
+
+      .right-field-photos {
+        left: auto;
+        right: 30px;
+        transform: translateX(30px);
+      }
+
+      .detail.active .right-field-photos {
+        transform: translateX(0);
+      }
+
+      .photo-card {
+        position: relative;
+        width: 100%;
+        height: 110px; /* Giảm nhẹ chiều cao để 3 ảnh vừa vặn hơn */
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #222;
+        border: 1.5px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+      }
+
+      .photo-card img {
+        width: 100%;
+        height: 100%;
+
+        object-fit: cover;
+
+        display: block;
+
+        transition: transform 0.35s ease;
+      }
+
+      .photo-card:hover img {
+        transform: scale(1.06);
+      }
+
+      /* Nhãn ảnh */
+
+      .photo-card::after {
+        position: absolute;
+
+        left: 10px;
+        bottom: 10px;
+
+        padding: 5px 9px;
+
+        border-radius: 4px;
+
+        background: rgba(0, 0, 0, 0.65);
+
+        color: #fff;
+
+        font-size: 11px;
+        font-weight: 700;
+
+        letter-spacing: 0.5px;
+      }
+
+      .photo-label {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+
+        padding: 5px 9px;
+
+        border-radius: 4px;
+
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+
+        font-size: 11px;
+        font-weight: 700;
+
+        letter-spacing: 0.5px;
+      }
+      /* =========================================
+   ẢNH ZOOM
+========================================= */
+
+      /* =========================================
+   ẢNH ZOOM (DETAIL IMAGE)
+========================================= */
+      .detail-image {
+        position: absolute;
+
+        left: 340px;
+        right: 340px;
+
+        top: 50%;
+
+        width: auto;
+        height: 86vh;
+
+        transform: translateY(-50%) scale(0.92);
+
+        object-fit: contain;
+
+        opacity: 0;
+
+        transition:
+          opacity 0.7s ease,
+          transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+
+        z-index: 20;
+      }
+
+      .detail.active .detail-image {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+
+      /* =========================================
+   RESPONSIVE
+========================================= */
+
+      @media (max-width: 900px) {
+        .field-photos {
+          right: 15px;
+          width: 220px;
+        }
+
+        .photo-card {
+          height: 110px;
+        }
+
+        .detail-image {
+          left: 15px;
+
+          width: calc(100% - 260px);
+
+          height: calc(100% - 100px);
+        }
+      }
+      /* =========================================
+   TÙY CHỈNH MÀU XANH LÁ CHO CỤM BÊN PHẢI
+========================================= */
+
+      /* 1. Vòng tròn khoanh bên phải */
+      #rightHighlight {
+        border-color: #b91010; /* Viền xanh lá */
+        box-shadow:
+          0 0 0 4px rgba(185, 16, 16, 0.22),
+          0 0 20px rgba(185, 33, 16, 0.45);
+      }
+
+      #rightHighlight::before {
+        border-color: rgba(185, 27, 16, 0.7); /* Viền nét đứt bên trong */
+      }
+
+      /* 2. Đường nối (line) bên phải */
+      .right-callout-line {
+        background: #b92110;
+      }
+
+      /* 3. Khung Callout bên phải */
+      .right-callout {
+        border-left-color: #b91010; /* Viền sọc màu bên trái khung */
+      }
+
+      /* 4. Nhãn chữ tiêu đề nhỏ phía trên (ĐIỂM 01 / PHƯƠNG ÁN DI DỜI) */
+      .right-callout .callout-label {
+        color: #b91010;
+      }
+      /* =========================
+   BẢNG CHÚ THÍCH (MAP LEGEND) HIỆN ĐẠI
+========================= */
+      .map-legend {
+        position: absolute;
+        left: 30px;
+        bottom: 30px;
+        z-index: 100;
+
+        /* Hiệu ứng nền kính tối sang trọng */
+        background: rgba(17, 24, 39, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+
+        padding: 16px 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+        color: #fff;
+        min-width: 170px;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .map-legend:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.6);
+      }
+
+      .legend-title {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 9px 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: #e5e7eb;
+        cursor: default;
+      }
+
+      /* Chấm tròn màu có viền và hiệu ứng phát sáng nhẹ */
+      .legend-color {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        border: 1.5px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+      }
+
+      .legend-color.group-red {
+        background: #e53935;
+        box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+      }
+
+      .legend-color.group-orange {
+        background: #fb8c00;
+        box-shadow: 0 0 8px rgba(251, 140, 0, 0.5);
+      }
+
+      .legend-color.group-yellow {
+        background: #fdd835;
+        box-shadow: 0 0 8px rgba(253, 216, 53, 0.5);
+      }
+
+      .legend-color.group-blue {
+        background: #1e88e5;
+        box-shadow: 0 0 8px rgba(30, 136, 229, 0.5);
+      }
+
+      .legend-color.group-green {
+        background: #43a047;
+        box-shadow: 0 0 8px rgba(67, 160, 71, 0.5);
+      }
+
+      .legend-title {
+        font-weight: 700;
+        margin-bottom: 10px;
+        font-size: 15px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+      }
+
+      .legend-color {
+        width: 24px; /* Chiều rộng dài hơn để tạo hình chữ nhật */
+        height: 12px; /* Chiều cao */
+        border-radius: 3px; /* Bo góc nhẹ (nếu muốn vuông sắc cạnh hoàn toàn thì để 0) */
+        flex-shrink: 0;
+        border: 1px solid rgba(255, 255, 255, 0.4); /* Viền mảnh tạo điểm nhấn */
+        display: inline-block;
+      }
+
+      .legend-color.group-red {
+        background: #e53935;
+      }
+
+      .legend-color.group-orange {
+        background: #fb8c00;
+      }
+
+      .legend-color.group-yellow {
+        background: #fdd835;
+      }
+
+      .legend-color.group-blue {
+        background: #1e88e5;
+      }
+
+      .legend-color.group-green {
+        background: #43a047;
+      }
+      /* =========================================
+         CUSTOM: TỪ ĐIỂM 12 TRỞ ĐI (ẨN BÊN PHẢI)
+      ========================================= */
+      .detail.single-panel #rightCallout,
+      .detail.single-panel #rightFieldPhotos,
+      .detail.single-panel #rightHighlight,
+      .detail.single-panel #rightCalloutLine {
+        display: none !important;
+      }
+
+      .detail.single-panel .detail-image {
+        right: 30px !important;
+        /* Chiều rộng = 100% trừ đi 340px (lề trái) và 30px (lề phải mới) */
+        width: calc(100% - 370px) !important;
+        max-width: calc(
+          100% - 370px
+        ) !important; /* Phá vỡ giới hạn max-width cũ */
+      }
+
+      @media (max-width: 900px) {
+        .detail.single-panel .detail-image {
+          right: 15px !important;
+          width: calc(100% - 30px) !important; /* 15px lề trái + 15px lề phải */
+          max-width: calc(100% - 30px) !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- LOADING -->
+      <div class="loading" id="loading">
+        <div class="loader"></div>
+      </div>
+
+      <!-- =========================
+         BẢN ĐỒ TỔNG QUAN
+    ========================== -->
+
+      <section class="overview" id="overview">
+        <div class="title">
+          <h1>KHU VỰC TRỌNG ĐIỂM</h1>
+          <h1>VÀ SƠ TÁN NHÂN DÂN</h1>
+        </div>
+
+        <div class="map-wrapper">
+          <div class="map-legend">
+            <div class="legend-title">PHÂN LOẠI ĐIỂM</div>
+
+            <div class="legend-item">
+              <span class="legend-color group-red"></span>
+              <span>KV NGẬP LỤT, SƠ TÁN (11 ĐIỂM)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color group-green"></span>
+              <span>DK KV XẢY RA SẠT LỠ (5 ĐIỂM)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color group-blue"></span>
+              <span>TUYẾN ĐƯỜNG BỊ CHIA CẮT (7 ĐIỂM)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color group-yellow"></span>
+              <span>ĐÊ KÈ CÓ NGUY CƠ SỰ CỐ</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color group-orange"></span>
+              <span>THỜI GIAN CƠ ĐỘNG</span>
+            </div>
+          </div>
+          <div class="map" id="map">
+            <!-- THAY ẢNH NÀY -->
+            <img
+              id="mapImage"
+              src="assets/map-full.png"
+              alt="Bản đồ tổng quan"
+            />
+
+            <!-- 16 ĐIỂM -->
+
+            <button class="marker p01 group-red" data-point="1">01</button>
+            <button class="marker p02 group-red" data-point="2">02</button>
+            <button class="marker p03 group-red" data-point="3">03</button>
+
+            <button class="marker p04 group-red" data-point="4">04</button>
+            <button class="marker p05 group-red" data-point="5">05</button>
+            <button class="marker p06 group-red" data-point="6">06</button>
+
+            <button class="marker p07 group-red" data-point="7">07</button>
+            <button class="marker p08 group-red" data-point="8">08</button>
+
+            <button class="marker p09 group-red" data-point="9">09</button>
+            <button class="marker p10 group-red" data-point="10">10</button>
+
+            <button class="marker p11 group-red" data-point="11">11</button>
+            <button class="marker p12 group-green" data-point="12">12</button>
+            <button class="marker p13 group-green" data-point="13">13</button>
+            <button class="marker p14 group-green" data-point="14">14</button>
+            <button class="marker p15 group-green" data-point="15">15</button>
+            <button class="marker p16 group-green" data-point="16">16</button>
+            <button class="marker p17 group-blue" data-point="17">17</button>
+            <button class="marker p18 group-blue" data-point="18">18</button>
+            <button class="marker p19 group-blue" data-point="19">19</button>
+            <button class="marker p20 group-blue" data-point="20">20</button>
+            <button class="marker p21 group-blue" data-point="21">21</button>
+            <button class="marker p22 group-blue" data-point="22">22</button>
+            <button class="marker p23 group-blue" data-point="23">23</button>
+            <button class="marker p24 group-yellow" data-point="24">24</button>
+            <button class="marker p25 group-yellow" data-point="25">25</button>
+            <button class="marker p26 group-yellow" data-point="26">26</button>
+            <button class="marker p27 group-yellow" data-point="27">27</button>
+            <button class="marker p28 group-orange" data-point="28">28</button>
+            <button class="marker p29 group-orange" data-point="29">29</button>
+            <button class="marker p30 group-orange" data-point="30">30</button>
+            <button class="marker p31 group-orange" data-point="31">31</button>
+            <button class="marker p32 group-orange" data-point="32">32</button>
+            <button class="marker p33 group-orange" data-point="33">33</button>
+            <button class="marker p34 group-orange" data-point="34">34</button>
+            <button class="marker p35 group-orange" data-point="35">35</button>
+            <button class="marker p36 group-orange" data-point="36">36</button>
+            <button class="marker p37 group-purple" data-point="37">37</button>
+            <button class="marker p38 group-green1" data-point="38">38</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================
+         MÀN HÌNH CHI TIẾT
+    ========================== -->
+
+      <section class="detail" id="detail">
+        <!-- ẢNH ZOOM SẴN -->
+        <img class="detail-image" id="detailImage" src="" alt="" />
+
+        <!-- ẢNH THỰC ĐỊA -->
+        <div class="field-photos" id="fieldPhotos"></div>
+        <!-- 3 ẢNH THỰC ĐỊA BÊN PHẢI -->
+        <div
+          class="field-photos right-field-photos"
+          id="rightFieldPhotos"
+        ></div>
+        <!-- VÒNG KHOANH -->
+        <div class="highlight" id="highlight"></div>
+        <!-- VÒNG KHOANH BÊN PHẢI -->
+        <div class="highlight" id="rightHighlight"></div>
+
+        <!-- ĐƯỜNG NỐI CALLOUT -->
+        <div class="callout-line" id="calloutLine"></div>
+        <!-- ĐƯỜNG NỐI BÊN PHẢI -->
+        <div
+          class="callout-line right-callout-line"
+          id="rightCalloutLine"
+        ></div>
+        <!-- CALLOUT -->
+        <div class="callout" id="callout">
+          <div class="callout-label" id="calloutLabel">ĐIỂM 01</div>
+
+          <div class="callout-title" id="calloutTitle">Điểm 01</div>
+
+          <div class="callout-text" id="calloutText">
+            Nội dung mô tả của điểm.
+          </div>
+        </div>
+        <!-- CALLOUT BÊN PHẢI -->
+        <div class="callout right-callout" id="rightCallout">
+          <div class="callout-label" id="rightCalloutLabel">ĐIỂM 01</div>
+
+          <div class="callout-title" id="rightCalloutTitle">Điểm 01</div>
+
+          <div class="callout-text" id="rightCalloutText">
+            Nội dung mô tả của điểm.
+          </div>
+        </div>
+
+        <div class="detail-number" id="detailNumber">ĐIỂM 01 / 16</div>
+
+        <button class="back-button" id="backButton">
+          ← QUAY LẠI BẢN ĐỒ TỔNG QUAN
+        </button>
+      </section>
+    </div>
+
+    <script>
+      /* ============================================================
+   DỮ LIỆU 16 ĐIỂM
+============================================================ */
+
+      /*
+   Bạn chỉ cần sửa phần này.
+
+   title:
+   Tên hiển thị.
+
+   description:
+   Nội dung bên dưới.
+
+   image:
+   Tên ảnh zoom tương ứng.
+
+   focus:
+   Vị trí điểm đỏ trên ẢNH ZOOM.
+
+   left/top tính theo %.
+
+   Ví dụ:
+   focus: {
+       x: 50,
+       y: 50
+   }
+
+   nghĩa là điểm đỏ nằm chính giữa ảnh.
+*/
+
+      const points = {
+        1: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Nhà Ông Phạm Hoa (KDC 27/TDP Vinh Hiển)",
+          description: [
+            "Tọa độ: 14.869901, 108.901976",
+            "Số hộ: 06, số khẩu: 19",
+            "Sử dụng lực lượng: aDQTC2; LL tại chổ của TDP Vinh Hiển",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/1_bo_trang_cong_ong_giang/1.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/1_bo_trang_cong_ong_giang/1.2s.png",
+              title: "Đường vào nơi sơ tán",
+            },
+            {
+              image: "assets/1_bo_trang_cong_ong_giang/1.3s.png",
+              title: "Đường vào nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "TDP Vinh Hiển",
+          rightDescription: [
+            "Khu vực: Bờ tràng cống ông Giảng",
+            "Số hộ: 06, số khẩu: 19",
+            "Tọa độ: 14.874187,108.909313",
+            "Nước chảy xiết và bị chia cắt mực nước sâu (1m)",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/1_bo_trang_cong_ong_giang/1.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/1_bo_trang_cong_ong_giang/1.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/1_bo_trang_cong_ong_giang/1.jpg",
+          focus: { x: 39, y: 64 },
+          rightFocus: {
+            x: 59,
+            y: 47,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        2: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          description: [
+            "Trụ sợ Công an phường",
+            "Tọa độ: 14.868208, 108.928498",
+            "Trạm y tế Phổ Thuận",
+            "Các nhà cao tầng",
+            "Số hộ: 35, số khẩu: 140",
+            "Sử dụng lực lượng: aDQTC1; LL tại chổ của TDP Vinh Hiển",
+            "Tăng cường: LL ANCS",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/2_xom2_vinh_hien/2.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/2_xom2_vinh_hien/2.2s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/2_xom2_vinh_hien/2.3s.png",
+              title: "Đường vào nơi sơ tán",
+            },
+            {
+              image: "assets/2_xom2_vinh_hien/2.4s.png",
+              title: "Đường vào nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "TDP Vinh Hiển",
+          rightDescription: [
+            "Khu vực: KDC 2, TDP Vinh Hiển",
+            "Số hộ: 35, số khẩu: 140",
+            "Tọa độ: 14.865318,108.928237",
+            "Ngập cục bộ; độ sâu 0.5-1m",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/2_xom2_vinh_hien/2.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/2_xom2_vinh_hien/2.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/2_xom2_vinh_hien/2.png",
+          focus: { x: 60, y: 26 },
+          rightFocus: {
+            x: 52,
+            y: 80,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        3: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Nhà cao tầng trên địa bàn TDP An Thổ",
+          description: [
+            "Số hộ: 02, số khẩu: 08",
+            "Sử dụng lực lượng: aDQTC1; TDP Vinh Hiển",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/3_khu_vuc_dong_ngau/3.1s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "TDP Vinh Hiển",
+          rightDescription: [
+            "Khu vực Đồng Ngâu, TDP Vinh Hiển",
+            "Số hộ: 02, số khẩu: 08",
+            "Tọa độ: 14.872500,108.943399",
+            "Ngập cục bộ bị chia cắt",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/3_khu_vuc_dong_ngau/3.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/3_khu_vuc_dong_ngau/3.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/3_khu_vuc_dong_ngau/3.png",
+          focus: { x: 82, y: 34 },
+          rightFocus: {
+            x: 21,
+            y: 59,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        4: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Cây xăng dầu Petrolimex số 15",
+          description: [
+            "Nơi sơ tán: Nhà cao tầng trên địa bàn TDP An Thổ",
+            "Số hộ: 14, số khẩu: 56",
+            "Tọa độ: 14.863099,108.931874",
+            "Lực lượng: aDQTC/TDP Liên Chiểu",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/4_xom13_lien_chieu/4.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/4_xom13_lien_chieu/4.2s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/4_xom13_lien_chieu/4.3s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "TDP Liên Chiểu",
+          rightDescription: [
+            "Khu vực KDC 13, TDP Liên Chiểu",
+            "Tọa độ: 14.862593,108.926704",
+            "Ngập cục bộ bị chia cắt",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/4_xom13_lien_chieu/4.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/4_xom13_lien_chieu/4.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/4_xom13_lien_chieu/4.png",
+          focus: { x: 61, y: 76 },
+          rightFocus: {
+            x: 35,
+            y: 77,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        5: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Trường THPT số 1 Đức Phổ (cơ sơ sở 2)",
+          description: [
+            "Nơi sơ tán: Nhà cao tầng trên địa bàn TDP Liên Chiểu",
+            "Số hộ: 50, số khẩu: 300",
+            "Tọa độ: 14.849230,108.939836",
+            "Lực lượng: aDQTC/TDP Liên Chiểu",
+            "Tăng cường: Công an, Quân sự, đội xung kích Ban CHPTDS phường; phương tiện ca nô: 01 CAP",
+            "Xe chuyên dụng: 01 CAP",
+            "Xe máy: 20 chiếc",
+            "Xe hiệp đồng: Khu vực trọng điểm",
+          ],
+          photos: [
+            {
+              image: "assets/5_xom9_lien_chieu/5.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/5_xom9_lien_chieu/5.2s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/5_xom9_lien_chieu/5.3s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "TDP Liên Chiểu",
+          rightDescription: [
+            "Khu vực ngập: Xóm 9 - Đồng bến nứa",
+            "Số hộ: 20, số khẩu: 85",
+            "Tọa độ: 14.850727,108.933006",
+            "Do nước sông Trà Câu dâng cao dẫn đến ngập cục bộ",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/5_xom9_lien_chieu/5.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/5_xom9_lien_chieu/5.2.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/5_xom9_lien_chieu/5.3.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          image: "assets/5_xom9_lien_chieu/5.png",
+          focus: { x: 95, y: 60 },
+          rightFocus: {
+            x: 10,
+            y: 39,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        6: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Hội trường UBND phường",
+          description: [
+            "Nơi sơ tán: Nhà cao tầng trên địa bàn TDP Liên Chiểu, Đông Quang",
+            "Số hộ: 20, số khẩu: 85",
+            "Tọa độ: 14.850031,108.939278",
+            "Lực lượng: aDQTC/TDP Đông Quang",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/6_kdc5_dong_quang/6.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/6_kdc5_dong_quang/6.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "Khu vực KDC 5, TDP Đông Quang",
+          rightDescription: [
+            "Số hộ: 20, số khẩu: 85",
+            "Tọa độ: 14.849771,108.938219",
+            "Do nước sông Trà Câu dâng cao dẫn đến ngập lụt",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/6_kdc5_dong_quang/6.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/6_kdc5_dong_quang/6.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/6_kdc5_dong_quang/6.png",
+          focus: { x: 68, y: 25 },
+          rightFocus: {
+            x: 21,
+            y: 66,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        7: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Ở xen ghép nhà cao tầng trên quốc lộ 1A",
+          description: [
+            "Số hộ: 10, số khẩu: 12",
+            "Lực lượng: aDQTC/TDP Đông Quang",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/7_kdc6_dong_quang/7.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/7_kdc6_dong_quang/7.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "Khu vực KDC 6, TDP Đông Quang",
+          rightDescription: [
+            "Số hộ: 10, số khẩu: 12",
+            "Tọa độ: 14.845426,108.940508",
+            "Do nước sông Trà Câu dâng cao dẫn đến ngập lụt",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/7_kdc6_dong_quang/7.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/7_kdc6_dong_quang/7.2.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/7_kdc6_dong_quang/7.3.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/7_kdc6_dong_quang/7.4.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/7_kdc6_dong_quang/7.png",
+          focus: { x: 28, y: 37 },
+          rightFocus: {
+            x: 47,
+            y: 50,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        8: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Trường mầm non Văn Thuận",
+          description: [
+            "Tọa độ: 14.849144,108.941097",
+            "Số hộ: 17, số khẩu: 43",
+            "Lực lượng: DQTC TDP Thủy Triều",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/8_kdc1_thuy_trieu/8.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/8_kdc1_thuy_trieu/8.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "Khu vực KDC 01, TDP Thủy Triều",
+          rightDescription: [
+            "Tọa độ: 14.845533,108.940709",
+            "Do nước sông Trà Câu dâng cao dẫn đến ngập lụt",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/8_kdc1_thuy_trieu/8.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/8_kdc1_thuy_trieu/8.2.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/8_kdc1_thuy_trieu/8.3.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/8_kdc1_thuy_trieu/8.png",
+          focus: { x: 56, y: 23 },
+          rightFocus: {
+            x: 55,
+            y: 72,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        9: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Trường tiểu học Phổ Văn",
+          description: [
+            "Số hộ: 25, số khẩu: 50",
+            "Tọa độ: 14.844780,108.946755",
+            "Lực lượng: DQTC TDP Thủy Triều",
+            "Tăng cường: Công an, Quân sự, đội xung kích Ban CHPTDS phường; phương tiện ca nô: 01 CAP",
+            "Xe chuyên dụng: 01 CAP",
+            "Xe máy: 20 chiếc",
+            "Xe hiệp đồng: Khu vực trọng điểm",
+          ],
+          photos: [
+            {
+              image: "assets/9_kdc67_thuy_trieu/9.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/9_kdc67_thuy_trieu/9.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "Khu vực KDC 6,7 / TDP Thủy Triều",
+          rightDescription: [
+            "Số hộ: 25, số khẩu: 50",
+            "Ngập úng kèm nước dâng, nước chảy xiết",
+            "Tọa độ: 14.838342,108.965540",
+          ],
+          rightPhotos: [
+            {
+              image: "assets/9_kdc67_thuy_trieu/9.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/9_kdc67_thuy_trieu/9.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/9_kdc67_thuy_trieu/9.png",
+          focus: { x: 10, y: 51 },
+          rightFocus: {
+            x: 80,
+            y: 82,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        10: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "TDP Văn Trường",
+          description: [
+            "Ở xen ghép nhà cao tầng thuộc KDC An Khương",
+            "Số hộ: 20, số khẩu: 50",
+            "Lực lượng: aDQTC TDP Văn Trường",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/10_kdc_dong_lan_van truong/10.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/10_kdc_dong_lan_van truong/10.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "Khu vực KDC Đông Lân, bê đò, vườn thuận",
+          rightDescription: ["Ngập úng cục bộ", "Tọa độ: 14.866099,108.949570"],
+          rightPhotos: [
+            {
+              image: "assets/10_kdc_dong_lan_van truong/10.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/10_kdc_dong_lan_van truong/10.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/10_kdc_dong_lan_van truong/10.png",
+          focus: { x: 23, y: 64 },
+          rightFocus: {
+            x: 84,
+            y: 40,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        11: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "TDP Vùng 5",
+          description: [
+            "Ở xen ghép nhà cao tầng TDP Vùng 5",
+            "Số hộ: 5, số khẩu: ",
+            "Lực lượng: aDQTC TDP Vùng 5",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets/11_kdc23_vung5/11.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/11_kdc23_vung5/11.2s.png",
+              title: "Nơi sơ tán1",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "Khu vực KDC 23, TDP Vùng 5",
+          rightDescription: ["Ngập úng cục bộ", "Tọa độ: 14.881505,108.932688"],
+          rightPhotos: [
+            {
+              image: "assets/11_kdc23_vung5/11.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets/11_kdc23_vung5/11.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets/11_kdc23_vung5/11.png",
+          focus: { x: 36, y: 59 },
+          rightFocus: {
+            x: 73,
+            y: 43,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        12: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "TDP Liên Chiểu",
+          description: [
+            "Ở xen ghép nhà cao tầng tại KDC 2,4,6 nằm trên trục đường liên xã",
+            "Số hộ: 110, số khẩu: 440",
+            "Sử dụng lực lượng: LL tại chổ của TDP Liên Chiểu",
+            "Phương tiện: Xe máy",
+          ],
+          photos: [
+            {
+              image: "assets5/1_bo_trang_cong_ong_giang/1.1s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC ẢNH HƯỞNG",
+          rightTitle:
+            "Vỡ kè bao khu vực 'đồng ruộng' ảnh hưởng KDC 6,7,8/TDP Liên Chiểu",
+          rightDescription: ["Tọa độ: 14.849251,108.927349", "Ngập cục bộ"],
+          rightPhotos: [
+            {
+              image: "assets5/1_bo_trang_cong_ong_giang/1.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets5/1_bo_trang_cong_ong_giang/1.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets5/1_bo_trang_cong_ong_giang/1.png",
+          focus: { x: 56, y: 35 },
+          rightFocus: {
+            x: 65,
+            y: 50,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        13: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Trường tiểu học Văn Thuận (cơ sỏ 1)",
+          description: [
+            "Tọa độ: 14.844780, 108.946755",
+            "Số hộ: 10, số khẩu: 15",
+            "Sử dụng lực lượng: aDQTC1; LL tại chổ của TDP Thủy Triều",
+            "Phương tiện: Xe máy cá nhân",
+          ],
+          photos: [
+            {
+              image: "assets5/2_xom2_vinh_hien/2.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets5/2_xom2_vinh_hien/2.2s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets5/2_xom2_vinh_hien/2.3s.png",
+              title: "Đường vào nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC ẢNH HƯỞNG",
+          rightTitle: "KDC số 7, TDP Thủy Triều",
+          rightDescription: [
+            "Vỡ đề kè đường sông Trà Câu",
+            "Tọa độ: 14.837643,108.960062",
+          ],
+          rightPhotos: [
+            {
+              image: "assets5/2_xom2_vinh_hien/2.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets5/2_xom2_vinh_hien/2.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets5/2_xom2_vinh_hien/2.png",
+          focus: { x: 17, y: 20 },
+          rightFocus: {
+            x: 84,
+            y: 66,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        14: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Không ảnh hưởng đến nhân dân",
+          description: [],
+          photos: [],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "TDP An Quang",
+          rightDescription: [
+            "Đập ngăn mặn thuộc Vùng 4, TDP An Quang",
+            "Tọa độ: 14.841143,108.968132",
+            "Sạt lỡ 70m đê kè sát đường bê tông (đã sạt lỡ)",
+          ],
+          rightPhotos: [
+            {
+              image: "assets5/3_khu_vuc_dong_ngau/3.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "assets5/3_khu_vuc_dong_ngau/3.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets5/3_khu_vuc_dong_ngau/3.png",
+          focus: {},
+          rightFocus: {
+            x: 49,
+            y: 57,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        15: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Không ảnh hưởng đến nhân dân",
+          description: [],
+          photos: [],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC NGẬP LỤT",
+          rightTitle: "TDP An Quang",
+          rightDescription: [
+            "Kè sạt lở bờ tả sông Thoa đoạn qua TDP An Quang dài 517,4 m",
+            "Tọa độ: 14.844896,108.967575",
+          ],
+          rightPhotos: [
+            {
+              image: "assets5/4_xom13_lien_chieu/4.1.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets5/4_xom13_lien_chieu/4.png",
+          focus: {},
+          rightFocus: {
+            x: 53,
+            y: 47,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        16: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "KHU VỰC SƠ TÁN",
+          title: "Không ảnh hưởng đến nhân dân",
+          description: [],
+          photos: [],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU VỰC SẠT LỠ",
+          rightTitle: "TDP Hải Tân",
+          rightDescription: [
+            "Kè chống sạt lở bờ tả sông Thoa đoạn qua cầu Hải Tân dài 263,6m",
+            "Tọa độ: 14.829855,108.984036",
+          ],
+          rightPhotos: [
+            {
+              image: "assets5/5_xom9_lien_chieu/5.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "assets5/5_xom9_lien_chieu/5.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "assets5/5_xom9_lien_chieu/5.png",
+          focus: {},
+          rightFocus: {
+            x: 43,
+            y: 57,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        17: {
+          label: "CÁC TUYẾN ĐƯỜNG NGẬP LỤT BỊ CHIA CẮT",
+          title: "TDP Đông quang",
+          description: [
+            "Đường bê tông liên xã",
+            "Đoạn đường: Ngã 3 chợ Trà Câu/TDP Đông Quang đi chợ chiểu",
+            "Tọa độ: 14.850599,108.934238",
+          ],
+          rightTitle: "KDC 5, TDP Đông Quang",
+          rightDescription: ["Độ sâu: 0.5 - 1m", "Chiều dài: 400m"],
+          photos: [
+            {
+              image: "6assets/1_bo_trang_cong_ong_giang/1.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "6assets/1_bo_trang_cong_ong_giang/1.2.png",
+              title: "Đoạn đường bị chia cắt",
+            },
+          ],
+          image: "6assets/1_bo_trang_cong_ong_giang/1.png",
+
+          focus: {},
+          rightFocus: {
+            x: 48,
+            y: 50,
+          },
+        },
+        18: {
+          label: "CÁC TUYẾN ĐƯỜNG NGẬP LỤT BỊ CHIA CẮT",
+          title: "TDP Liên Chiểu",
+          description: [
+            "Đoạn đường: Xóm 9 'Đồng bến nứa'/TDP Liên Chiểu đi quốc lộ 1A 'chợ Trà Câu",
+            "Tọa độ: 14.850751,108.932450",
+            "Địa danh: Xóm 9 / TDP Liên Chiểu",
+          ],
+          rightTitle: "KDC 9, TDP Liên Chiểu",
+          rightDescription: ["Độ sâu: 0.5 - 1m", "Chiều dài: 400m"],
+          photos: [
+            {
+              image: "6assets/2_xom2_vinh_hien/2.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "6assets/2_xom2_vinh_hien/2.2.png",
+              title: "Đoạn đường bị chia cắt",
+            },
+          ],
+          image: "6assets/2_xom2_vinh_hien/2.png",
+
+          focus: {},
+          rightFocus: {
+            x: 43,
+            y: 51,
+          },
+        },
+        19: {
+          label: "CÁC TUYẾN ĐƯỜNG NGẬP LỤT BỊ CHIA CẮT",
+          title: "TDP Thanh Sơn",
+          description: [
+            "Đoạn đường: Cầu Tràng đường sắt TDP Thanh Sơn",
+            "Tọa độ: 14.852083,108.919119",
+          ],
+          rightTitle: "TDP Thanh Sơn",
+          rightDescription: ["Độ sâu: 0.7 - 1,2m", "Chiều dài: 100m"],
+          photos: [
+            {
+              image: "6assets/3_khu_vuc_dong_ngau/3.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "6assets/3_khu_vuc_dong_ngau/3.2.png",
+              title: "Đoạn đường bị chia cắt",
+            },
+          ],
+          image: "6assets/3_khu_vuc_dong_ngau/3.png",
+
+          focus: {},
+          rightFocus: {
+            x: 46,
+            y: 51,
+          },
+        },
+
+        20: {
+          label: "CÁC TUYẾN ĐƯỜNG NGẬP LỤT BỊ CHIA CẮT",
+          title: "TDP Tập An",
+          description: [
+            "Đoạn đường:Đường Phạm Văn Đồng/TDP Tập An trên trường THCS Văn Thuận (cơ sở 1) 100m",
+            "Tọa độ: 14.846768,108.942380",
+          ],
+          rightTitle: "TDP Tâp An",
+          rightDescription: ["Độ sâu: 0.3 - 1m", "Chiều dài: 150m"],
+          photos: [
+            {
+              image: "6assets/4_xom13_lien_chieu/4.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "6assets/4_xom13_lien_chieu/4.2.png",
+              title: "Đoạn đường bị chia cắt",
+            },
+          ],
+          image: "6assets/4_xom13_lien_chieu/4.png",
+
+          focus: {},
+          rightFocus: {
+            x: 51,
+            y: 48,
+          },
+        },
+
+        21: {
+          label: "CÁC TUYẾN ĐƯỜNG NGẬP LỤT BỊ CHIA CẮT",
+          title: "TDP An Quang",
+          description: [
+            "Đoạn đường: Cầu đò mốc / TDP Tập An đi TDP An Quang",
+            "Tọa độ: 14.851721,108.962895",
+          ],
+          rightTitle: "TDP An Quang",
+          rightDescription: [
+            "Đường bê tông liên xã",
+            "Độ sâu: 0.5 - 1,2m",
+            "Chiều dài: 200m",
+          ],
+          photos: [
+            {
+              image: "6assets/5_xom9_lien_chieu/5.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "6assets/5_xom9_lien_chieu/5.2.png",
+              title: "Đoạn đường bị chia cắt",
+            },
+          ],
+          image: "6assets/5_xom9_lien_chieu/5.png",
+
+          focus: { x: 53, y: 51 },
+          rightFocus: {
+            x: 64,
+            y: 66,
+          },
+        },
+
+        22: {
+          label: "CÁC TUYẾN ĐƯỜNG NGẬP LỤT BỊ CHIA CẮT",
+          title: "TDP An Quang",
+          description: [
+            "Đoạn đường: Vùng 6 / TDP An Quang đi TDP Tập An 'Cầu Đò Mốc'",
+            "Tọa độ: 14.851680,108.964678",
+          ],
+          rightTitle: "TDP An Quang",
+          rightDescription: [
+            "Đường bê tông liên xã",
+            "Độ sâu: 0.5 - 1,2m",
+            "Chiều dài: 200m",
+          ],
+          photos: [
+            {
+              image: "6assets/6_kdc5_dong_quang/6.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "6assets/6_kdc5_dong_quang/6.2.png",
+              title: "Đoạn đường bị chia cắt",
+            },
+          ],
+          image: "6assets/6_kdc5_dong_quang/6.png",
+
+          focus: {},
+          rightFocus: {
+            x: 56,
+            y: 53,
+          },
+        },
+        23: {
+          label: "CÁC TUYẾN ĐƯỜNG NGẬP LỤT BỊ CHIA CẮT",
+          title: "TDP Vinh Hiển",
+          description: [
+            "Đoạn đường: Trục đường ngang bê tông nối liền TDP Vinh Hiển đi TDP Liên Chiểu",
+            "Tọa độ: 14.861977,108.926693",
+          ],
+          rightTitle: "TDP Vinh Hiển",
+          rightDescription: [
+            "Đường bê tông",
+            "Độ sâu: 0.5 - 1,2m",
+            "Chiều dài: 300m",
+          ],
+          photos: [
+            {
+              image: "6assets/7_kdc6_dong_quang/7.1.png",
+              title: "Điểm sạt lở",
+            },
+            {
+              image: "6assets/7_kdc6_dong_quang/7.2.png",
+              title: "Đoạn đường bị chia cắt",
+            },
+          ],
+          image: "6assets/7_kdc6_dong_quang/7.png",
+
+          focus: {},
+          rightFocus: {
+            x: 48,
+            y: 42,
+          },
+        },
+        24: {
+          label: "Đập ngăn mặn",
+          title: "TDP Vùng 4/TDP An Quang",
+          description: [
+            "Tình trạng: Đã sạt lỡ 70m",
+            "Tọa độ: 14.841143,108.968132",
+            "Tình trạng: Đã sạt lỡ 70m",
+          ],
+          image: "11assets/1_bo_trang_cong_ong_giang/1.png",
+
+          photos: [
+            {
+              image: "11assets/1_bo_trang_cong_ong_giang/1.1.png",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "11assets/1_bo_trang_cong_ong_giang/1.2.png",
+              title: "Bờ kè",
+            },
+          ],
+
+          focus: { x: 54, y: 67 },
+        },
+        25: {
+          title: "KDC7/TDP Thủy Triều",
+          description: [
+            "Tuyến đê: Bờ kè sông Trà Câu",
+            "Tình trạng: Vỡ đường kè, tràng nước",
+            "Tọa độ: 14.837643,108.960062",
+          ],
+          image: "11assets/2_xom2_vinh_hien/2.png",
+
+          photos: [
+            {
+              image: "11assets/2_xom2_vinh_hien/2.1.png",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "11assets/2_xom2_vinh_hien/2.2.png",
+              title: "Bờ kè",
+            },
+          ],
+
+          focus: { x: 48, y: 57 },
+        },
+        26: {
+          title: "KDC 6/TDP Liên Chiểu",
+          description: [
+            "Tuyến đê: Kè bao khu vực đồng ruộng",
+            "Tọa độ: 14.849251,108.927349",
+            "Tình trạng: Kè yếu, đắp sơ sài",
+          ],
+          image: "11assets/3_khu_vuc_dong_ngau/3.png",
+
+          photos: [
+            {
+              image: "11assets/3_khu_vuc_dong_ngau/3.1.png",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "11assets/3_khu_vuc_dong_ngau/3.2.png",
+              title: "Đường vào khu dân cư",
+            },
+          ],
+
+          focus: { x: 58, y: 54 },
+        },
+
+        27: {
+          title: "Vùng 2/TDP Hải Tân",
+          description: [
+            "Tuyến đê: Kè sạt lỡ bờ tả sông Thoa đoạn đến cầu Hải Tân dài 263,6m",
+            "Tọa độ: 14.829855,108.984036",
+            "Tình trạng: Nước biển dâng ảnh hưởng các hộ vùng 2/TDP Hải Tân",
+          ],
+          image: "11assets/4_xom13_lien_chieu/4.png",
+
+          photos: [
+            {
+              image: "11assets/4_xom13_lien_chieu/4.1.png",
+              title: "Khu vực ngập",
+            },
+            {
+              image: "11assets/4_xom13_lien_chieu/4.2.png",
+              title: "Đường vào khu dân cư",
+            },
+          ],
+
+          focus: { x: 52, y: 53 },
+        },
+        28: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 7/TDP Thủy Triều",
+          description: [
+            "Đường cơ động: Tỉnh lộ 627B Đường Thuận An, quốc lộ 1A, đường ven sông Trà Câu",
+            "Cự ly: 7km",
+            "Thời gian: 15 phút",
+          ],
+          photos: [
+            {
+              image: "11assets/1_bo_trang_cong_ong_giang1/1.1s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Ban CHQS phường",
+          rightDescription: [
+            "Vị trí đóng quân: KDC Hòa Thượng/TDP An Thạch",
+            "Lực lượng: 10 đ/c",
+            "Phương tiện: 1 xuồng, 2: Mô tô và xe máy cá nhân",
+            "Vật chất: 500 bao cát, cọc, áo phao, phao tròn, cuốc xẻng, rựa, cưa",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/1_bo_trang_cong_ong_giang/1.1.png",
+            },
+            {
+              image: "13assets/1_bo_trang_cong_ong_giang/1.2.png",
+            },
+          ],
+
+          image: "13assets/1_bo_trang_cong_ong_giang/1.png",
+          focus: { x: 39, y: 82 },
+          rightFocus: {
+            x: 52,
+            y: 23,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        29: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 9/TDP Thủy Triều",
+          description: [
+            "Đường cơ động: Tỉnh lộ 627B Đường Thuận An, quốc lộ 1A, đường liên xã từ ngã ba Trà Câu đi chợ Chiểu",
+            "Cự ly: 5km",
+            "Thời gian: 12 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/2_xom2_vinh_hien/2.1s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Ban CHQS phường",
+          rightDescription: [
+            "Vị trí đóng quân: KDC Hòa Thượng/TDP An Thạch",
+            "Lực lượng: 10 đ/c",
+            "Phương tiện: 1 xuồng, 2: Mô tô và xe máy cá nhân",
+            "Vật chất: 500 bao cát, cọc, áo phao, phao tròn, cuốc xẻng, rựa, cưa",
+          ],
+
+          rightPhotos: [
+            {
+              image: "13assets/2_xom2_vinh_hien/2.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/2_xom2_vinh_hien/2.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/2_xom2_vinh_hien/2.png",
+          focus: { x: 46, y: 78 },
+          rightFocus: { x: 56, y: 25 },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        30: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 7/TDP Thủy Triều",
+          description: [
+            "Đường cơ động: Quốc lộ 1A đường ven sông Trà Câu",
+            "Cự ly: 4km",
+            "Thời gian: 10 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/3_khu_vuc_dong_ngau/3.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "13assets/3_khu_vuc_dong_ngau/3.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Công an phường",
+          rightDescription: [
+            "Vị trí đóng quân: KDC 2/TDP Vinh Hiển",
+            "Lực lượng: 20 đ/c",
+            "Phương tiện: 1 ca nô, 1 xe đặc chủng, 2 mô tô và xe máy cá nhân",
+            "Vật chất: 500 bao cát, cọc, áo phao, phao tròn, cuốc xẻng, rựa, cưa",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/3_khu_vuc_dong_ngau/3.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/3_khu_vuc_dong_ngau/3.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/3_khu_vuc_dong_ngau/3.png",
+          focus: { x: 35, y: 11 },
+          rightFocus: {
+            x: 64,
+            y: 77,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        31: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 9/TDP Liên Chiểu (Đầm bến nứa)",
+          description: [
+            "Đường cơ động: Quốc lộ 1A đường liên xã từ ngã ba từ ngã ba chợ",
+            "Cự ly: 2km",
+            "Thời gian: 05 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/4_xom13_lien_chieu/4.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "13assets/4_xom13_lien_chieu/4.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Công an phường",
+          rightDescription: [
+            "Vị trí đóng quân: KDC 2/TDP Vinh Hiển",
+            "Lực lượng: 20 đ/c",
+            "Phương tiện: 1 ca nô, 1 xe đặc chủng, 2 mô tô và xe máy cá nhân",
+            "Vật chất: 500 bao cát, cọc, áo phao, phao tròn, cuốc xẻng, rựa, cưa",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/4_xom13_lien_chieu/4.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/4_xom13_lien_chieu/4.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/4_xom13_lien_chieu/4.png",
+          focus: { x: 60, y: 79 },
+          rightFocus: { x: 35, y: 13 },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        32: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 7/TDP Thủy Triều",
+          description: [
+            "Đường cơ động: Đường Võ Nguyên Giáp, qua cầu Hải Tân, đường Ngô Quyền, đường tránh Đức Phổ, cầu Thủy Triều đến KDC7/TDP Thủy Triều",
+            "Cự ly: 12km",
+            "Thời gian: 30 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/5_xom9_lien_chieu/5.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "13assets/5_xom9_lien_chieu/5.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Đồn Biên phòng Phổ Quang",
+          rightDescription: [
+            "Vị trí đóng quân: Vùng 7/TDP An Quang",
+            "Lực lượng: 15 đ/c",
+            "Phương tiện: 01 xe ô tô quân sự, xe máy cá nhân",
+            "Vật chất: Áo phao, phao tròn, bè",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/5_xom9_lien_chieu/5.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/5_xom9_lien_chieu/5.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/5_xom9_lien_chieu/5.png",
+          focus: { x: 95, y: 60 },
+          rightFocus: {
+            x: 10,
+            y: 39,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        33: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 5,6/TDP Đông Quang",
+          description: [
+            "Đường cơ động: Đường Võ Nguyên Giáp, qua cầu Hải Tân, đường Ngô Quyền, đường tránh Đức Phổ, cầu Trà Câu đến KDC5,6/TDP Đông Quang",
+            "Cự ly: 15km",
+            "Thời gian: 35 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/6_kdc5_dong_quang/6.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "13assets/6_kdc5_dong_quang/6.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Đồn Biên phòng Phổ Quang",
+          rightDescription: [
+            "Vị trí đóng quân: Vùng 7/TDP An Quang",
+            "Lực lượng: 15 đ/c",
+            "Phương tiện: 01 xe ô tô quân sự, xe máy cá nhân",
+            "Vật chất: Áo phao, phao tròn, bè",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/6_kdc5_dong_quang/6.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/6_kdc5_dong_quang/6.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/6_kdc5_dong_quang/6.png",
+          focus: { x: 45, y: 13 },
+          rightFocus: {
+            x: 69,
+            y: 62,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        34: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 7/TDP Thủy Triều",
+          description: [
+            "Đường cơ động: Quốc lộ 1A đường ven sông Trà Câu",
+            "Cự ly: 3km",
+            "Thời gian: 05 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/7_kdc6_dong_quang/7.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "13assets/7_kdc6_dong_quang/7.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Đội xung kích Ban CHPTDS phường",
+          rightDescription: [
+            "Vị trí đóng quân: Trụ sở UBND phường, TDP Đông Quang",
+            "Lực lượng: 30 đ/c",
+            "Phương tiện: Xe máy cá nhân",
+            "Vật chất: Áo phao, phao tròn, bao cát",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/7_kdc6_dong_quang/7.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/7_kdc6_dong_quang/7.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/7_kdc6_dong_quang/7.png",
+          focus: { x: 28, y: 37 },
+          rightFocus: {
+            x: 47,
+            y: 50,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        35: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 9/TDP Liên Chiểu (Đầm bến nứa)",
+          description: [
+            "Đường cơ động: Quốc lộ 1A ",
+            "Cự ly: 1km",
+            "Thời gian: 03 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/8_kdc1_thuy_trieu/8.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "13assets/8_kdc1_thuy_trieu/8.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Đội xung kích Ban CHPTDS phường",
+          rightDescription: [
+            "Vị trí đóng quân: Trụ sở UBND phường, TDP Đông Quang",
+            "Lực lượng: 30 đ/c",
+            "Phương tiện: Xe máy cá nhân",
+            "Vật chất: Áo phao, phao tròn, bao cát",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/8_kdc1_thuy_trieu/8.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/8_kdc1_thuy_trieu/8.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/8_kdc1_thuy_trieu/8.png",
+          focus: { x: 33, y: 34 },
+          rightFocus: {
+            x: 65,
+            y: 73,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        36: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+          label: "TRỌNG ĐIỂM ỨNG CỨU",
+          title: "KDC 5,6/TDP Đông Quang",
+          description: [
+            "Đường cơ động: Quốc lộ 1A ",
+            "Cự ly: 1km",
+            "Thời gian: 03 phút",
+          ],
+          photos: [
+            {
+              image: "13assets/9_kdc67_thuy_trieu/9.1s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "13assets/9_kdc67_thuy_trieu/9.2s.png",
+              title: "Nơi sơ tán",
+            },
+          ],
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "LỰC LƯỢNG CƠ ĐỘNG ỨNG PHÓ",
+          rightTitle: "Đội xung kích Ban CHPTDS phường",
+          rightDescription: [
+            "Vị trí đóng quân: Trụ sở UBND phường, TDP Đông Quang",
+            "Lực lượng: 30 đ/c",
+            "Phương tiện: Xe máy cá nhân",
+            "Vật chất: Áo phao, phao tròn, bao cát",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/9_kdc67_thuy_trieu/9.1.png",
+              title: "Điểm ngập lụt",
+            },
+            {
+              image: "13assets/9_kdc67_thuy_trieu/9.2.png",
+              title: "Điểm ngập lụt",
+            },
+          ],
+
+          image: "13assets/9_kdc67_thuy_trieu/9.png",
+          focus: { x: 10, y: 51 },
+          rightFocus: {
+            x: 80,
+            y: 82,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+
+        37: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "BÃI ĐỖ TRỰC THĂNG",
+          rightDescription: [
+            "Khu vực: Đường Phạm Văn Đồng, nhà thờ Huỳnh Đăng Khoa, TDP Tập An",
+            "Tọa độ: 14.848575,108.954410",
+            "Diện tích: 2030m2",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/bai_do_truc_thang/1.1.png",
+              title: "Bãi đỗ",
+            },
+          ],
+
+          image: "13assets/bai_do_truc_thang/1.png",
+          focus: { x: 10, y: 51 },
+          rightFocus: {
+            x: 80,
+            y: 82,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+        38: {
+          // --- DỮ LIỆU BÊN TRÁI ---
+
+          // --- DỮ LIỆU RIÊNG CHO BÊN PHẢI (MỚI THÊM) ---
+          rightLabel: "KHU NEO ĐẬU TÀU THUYỀN",
+          rightDescription: [
+            "Địa chỉ: Khu neo đậu Cảng cá Mỹ Á, TDP Hải Tân",
+            "Số lượng: 486 chiếc , 3067 lao động",
+            "Tọa độ: 14.831781, 108.987680",
+            "Sức chứa: 400 chiếc",
+          ],
+          rightPhotos: [
+            {
+              image: "13assets/khu_neo_dau/1.1.png",
+              title: "Bãi đỗ",
+            },
+          ],
+
+          image: "13assets/khu_neo_dau/1.png",
+          focus: {},
+          rightFocus: {
+            x: 65,
+            y: 54,
+          },
+          // Nếu điểm đỏ / đường nối bên phải trỏ vào vị trí khác, có thể thêm:
+          // rightFocus: { x: 65, y: 55 }
+        },
+      };
+
+      /* ============================================================
+   ELEMENTS
+============================================================ */
+
+      const overview = document.getElementById("overview");
+      const detail = document.getElementById("detail");
+
+      const detailImage = document.getElementById("detailImage");
+      const fieldPhotos = document.getElementById("fieldPhotos");
+      const highlight = document.getElementById("highlight");
+
+      const callout = document.getElementById("callout");
+      const calloutLine = document.getElementById("calloutLine");
+      const rightFieldPhotos = document.getElementById("rightFieldPhotos");
+
+      const rightHighlight = document.getElementById("rightHighlight");
+
+      const rightCallout = document.getElementById("rightCallout");
+
+      const rightCalloutLine = document.getElementById("rightCalloutLine");
+
+      const rightCalloutLabel = document.getElementById("rightCalloutLabel");
+
+      const rightCalloutTitle = document.getElementById("rightCalloutTitle");
+
+      const rightCalloutText = document.getElementById("rightCalloutText");
+      const calloutLabel = document.getElementById("calloutLabel");
+      const calloutTitle = document.getElementById("calloutTitle");
+      const calloutText = document.getElementById("calloutText");
+
+      const detailNumber = document.getElementById("detailNumber");
+
+      const backButton = document.getElementById("backButton");
+
+      const loading = document.getElementById("loading");
+
+      /* ============================================================
+   PRELOAD ẢNH
+============================================================ */
+
+      function preloadImages() {
+        const images = [];
+
+        images.push("assets/map-full.png");
+
+        Object.values(points).forEach((point) => {
+          images.push(point.image);
+        });
+
+        let loaded = 0;
+
+        images.forEach((src) => {
+          const img = new Image();
+
+          img.onload = img.onerror = () => {
+            loaded++;
+
+            if (loaded >= images.length) {
+              setTimeout(() => {
+                loading.classList.add("hide");
+              }, 300);
+            }
+          };
+
+          img.src = src;
+        });
+      }
+
+      /* ============================================================
+   BẮT ĐẦU
+============================================================ */
+
+      preloadImages();
+
+      /* ============================================================
+   CLICK MARKER
+============================================================ */
+
+      document.querySelectorAll(".marker").forEach((marker) => {
+        marker.addEventListener("click", () => {
+          const number = Number(marker.dataset.point);
+
+          openPoint(number, marker);
+        });
+      });
+
+      /* ============================================================
+   MỞ ĐIỂM
+============================================================ */
+
+      function openPoint(number, marker) {
+        const point = points[number];
+
+        if (!point) return;
+
+        /* THÊM LOGIC: CHỈ điểm từ 17 đến 27 mới ẩn bên phải và mở rộng ảnh */
+        if (number >= 17 && number <= 27) {
+          detail.classList.add("single-panel");
+        } else {
+          detail.classList.remove("single-panel");
+        }
+
+        const markerRect = marker.getBoundingClientRect();
+        const startX = markerRect.left + markerRect.width / 2;
+        const startY = markerRect.top + markerRect.height / 2;
+
+        detailImage.src = point.image;
+        detailImage.alt = point.title;
+
+        function renderFieldPhotos(container, photos) {
+          container.innerHTML = "";
+          if (!photos || photos.length === 0) return;
+          photos.forEach((photo) => {
+            const card = document.createElement("div");
+            card.className = "photo-card";
+            const img = document.createElement("img");
+            img.src = photo.image;
+            img.onclick = () => openZoom(photo.image);
+            img.alt = photo.title || "";
+            const label = document.createElement("div");
+            label.className = "photo-label";
+            label.textContent = photo.title || "";
+            card.appendChild(img);
+            card.appendChild(label);
+            container.appendChild(card);
+          });
+        }
+
+        /* 1. RENDER ẢNH BÊN TRÁI VÀ BÊN PHẢI */
+        renderFieldPhotos(fieldPhotos, point.photos);
+        // Render ảnh bên phải nếu KHÔNG phải nhóm 17-27 (nghĩa là < 17 hoặc >= 28)
+        if (number < 17 || number >= 28) {
+          renderFieldPhotos(
+            rightFieldPhotos,
+            point.rightPhotos || point.photos,
+          );
+        } else {
+          rightFieldPhotos.innerHTML = "";
+        }
+
+        /* 2. NỘI DUNG CALLOUT BÊN TRÁI */
+        calloutLabel.textContent =
+          point.label || `ĐIỂM ${String(number).padStart(2, "0")}`;
+        calloutTitle.textContent = point.title;
+        const leftDesc = point.description;
+        calloutText.innerHTML = Array.isArray(leftDesc)
+          ? leftDesc.map((item) => `- ${item}`).join("<br>")
+          : leftDesc || "";
+
+        detailNumber.textContent = `ĐIỂM ${String(number).padStart(2, "0")} / 16`;
+
+        /* 3. NỘI DUNG CALLOUT BÊN PHẢI */
+        if (number < 17 || number >= 28) {
+          rightCalloutLabel.textContent =
+            point.rightLabel ||
+            point.label ||
+            `ĐIỂM ${String(number).padStart(2, "0")}`;
+          rightCalloutTitle.textContent = point.rightTitle || point.title;
+          const rightDesc = point.rightDescription || point.description;
+          rightCalloutText.innerHTML = Array.isArray(rightDesc)
+            ? rightDesc.map((item) => `- ${item}`).join("<br>")
+            : rightDesc || "";
+        }
+
+        /* Hiện màn hình detail */
+        detail.classList.add("active");
+        overview.classList.add("hidden");
+
+        /* Reset animation */
+        highlight.classList.remove("show");
+        callout.classList.remove("show");
+        calloutLine.classList.remove("show");
+        rightHighlight.classList.remove("show");
+        rightCallout.classList.remove("show");
+        rightCalloutLine.classList.remove("show");
+
+        detailImage.onload = () => {
+          requestAnimationFrame(() => {
+            positionHighlight(point);
+          });
+        };
+
+        if (detailImage.complete) {
+          setTimeout(() => {
+            positionHighlight(point);
+          }, 50);
+        }
+      }
+      /* ============================================================
+   ĐẶT VÒNG KHOANH & VẼ ĐƯỜNG NỐI
+============================================================ */
+
+      function positionHighlight(point) {
+        // Sửa lỗi: Lấy tọa độ cho điểm bên trái. Nếu trống, lấy tạm của điểm phải, nếu vẫn trống thì lấy 50%
+        const focusX =
+          point.focus && point.focus.x !== undefined
+            ? point.focus.x
+            : point.rightFocus
+              ? point.rightFocus.x
+              : 50;
+        const focusY =
+          point.focus && point.focus.y !== undefined
+            ? point.focus.y
+            : point.rightFocus
+              ? point.rightFocus.y
+              : 50;
+
+        const imageRect = detailImage.getBoundingClientRect();
+
+        const targetX = imageRect.left + imageRect.width * (focusX / 100);
+        const targetY = imageRect.top + imageRect.height * (focusY / 100);
+
+        // Gán vị trí cho vòng tròn trái
+        highlight.style.left = `${targetX}px`;
+        highlight.style.top = `${targetY}px`;
+
+        setTimeout(() => {
+          highlight.classList.add("show");
+        }, 250);
+
+        // Nối dây callout trái
+        positionCallout(targetX, targetY);
+
+        // CHỈ HIỂN THỊ VÀ TÍNH TOÁN BÊN PHẢI NẾU LÀ ĐIỂM < 12
+        if (!detail.classList.contains("single-panel")) {
+          const rx =
+            point.rightFocus && point.rightFocus.x !== undefined
+              ? point.rightFocus.x
+              : focusX;
+          const ry =
+            point.rightFocus && point.rightFocus.y !== undefined
+              ? point.rightFocus.y
+              : focusY;
+
+          const rightTargetX = imageRect.left + imageRect.width * (rx / 100);
+          const rightTargetY = imageRect.top + imageRect.height * (ry / 100);
+
+          rightHighlight.style.left = `${rightTargetX}px`;
+          rightHighlight.style.top = `${rightTargetY}px`;
+
+          setTimeout(() => {
+            rightHighlight.classList.add("show");
+          }, 250);
+
+          positionRightCallout(rightTargetX, rightTargetY);
+        }
+      }
+      function positionCallout(targetX, targetY) {
+        callout.style.left = "30px";
+        callout.style.top = "5px"; // Đặt ở top 30px thay vì 50%
+
+        setTimeout(() => {
+          callout.classList.add("show");
+          drawCalloutLine(targetX, targetY);
+        }, 600);
+      }
+      function positionRightCallout(targetX, targetY) {
+        rightCallout.style.left = "auto";
+
+        rightCallout.style.right = "30px";
+
+        rightCallout.style.top = "30px";
+
+        setTimeout(() => {
+          rightCallout.classList.add("show");
+
+          drawRightCalloutLine(targetX, targetY);
+        }, 600);
+      }
+
+      function drawCalloutLine(targetX, targetY) {
+        const calloutRect = callout.getBoundingClientRect();
+
+        // Điểm bắt đầu: mép phải giữa khung callout
+        const startX = calloutRect.right;
+        const startY = calloutRect.top + calloutRect.height / 2;
+
+        // Khoảng cách và góc nghiêng nối thẳng vào tâm vòng tròn đỏ
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+        calloutLine.style.left = `${startX}px`;
+        calloutLine.style.top = `${startY}px`;
+        calloutLine.style.width = `${distance}px`;
+        calloutLine.style.transform = `rotate(${angle}deg)`;
+
+        calloutLine.classList.add("show");
+      }
+      function drawRightCalloutLine(targetX, targetY) {
+        const rect = rightCallout.getBoundingClientRect();
+
+        // Bắt đầu từ mép trái callout phải
+        const startX = rect.left;
+
+        const startY = rect.top + rect.height / 2;
+
+        const dx = targetX - startX;
+
+        const dy = targetY - startY;
+
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+        rightCalloutLine.style.left = `${startX}px`;
+
+        rightCalloutLine.style.top = `${startY}px`;
+
+        rightCalloutLine.style.width = `${distance}px`;
+
+        rightCalloutLine.style.transform = `rotate(${angle}deg)`;
+
+        rightCalloutLine.classList.add("show");
+      }
+      /* ============================================================
+   QUAY LẠI
+============================================================ */
+
+      backButton.addEventListener("click", closePoint);
+
+      function closePoint() {
+        /*
+       Ẩn các thành phần detail
+    */
+
+        highlight.classList.remove("show");
+
+        callout.classList.remove("show");
+
+        calloutLine.classList.remove("show");
+        rightHighlight.classList.remove("show");
+
+        rightCallout.classList.remove("show");
+
+        rightCalloutLine.classList.remove("show");
+        /*
+       Tắt màn hình detail
+    */
+
+        detail.classList.remove("active");
+
+        /*
+       Đợi animation rồi hiện bản đồ
+    */
+
+        setTimeout(() => {
+          overview.classList.remove("hidden");
+        }, 250);
+      }
+
+      /* ============================================================
+   ESC = QUAY LẠI
+============================================================ */
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (detail.classList.contains("active")) {
+            closePoint();
+          }
+        }
+      });
+
+      /* ============================================================
+   RESPONSIVE
+============================================================ */
+
+      window.addEventListener("resize", () => {
+        if (detail.classList.contains("active")) {
+          const currentLabel = detailNumber.textContent;
+
+          const number = parseInt(currentLabel.match(/\d+/)[0]);
+
+          if (points[number]) {
+            positionHighlight(points[number]);
+          }
+        }
+      });
+      /* ============================================================
+   TOOL LẤY TỌA ĐỘ CLICK TRỰC TIẾP
+============================================================ */
+      detailImage.style.cursor = "crosshair"; // Đổi con trỏ thành dấu cộng để ngắm chuẩn hơn
+
+      detailImage.addEventListener("click", (e) => {
+        const rect = detailImage.getBoundingClientRect();
+
+        // Tính tỷ lệ phần trăm theo ảnh hiển thị
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+
+        const percentX = Math.round((clickX / rect.width) * 100);
+        const percentY = Math.round((clickY / rect.height) * 100);
+
+        // 1. Cho vòng tròn đỏ nhảy ngay đến vị trí vừa click để xem thử
+        highlight.style.left = `${e.clientX}px`;
+        highlight.style.top = `${e.clientY}px`;
+        positionCallout(e.clientX, e.clientY);
+
+        // 2. In ra console và tự động copy đoạn code
+        const result = `focus: { x: ${percentX}, y: ${percentY} },`;
+        console.log(
+          "%c Tọa độ vừa chọn: " + result,
+          "color: #10b981; font-weight: bold; font-size: 14px;",
+        );
+
+        navigator.clipboard.writeText(result).then(() => {
+          alert(
+            `Đã copy tọa độ vào bộ nhớ:\n${result}\nChỉ cần paste vào điểm tương ứng!`,
+          );
+        });
+      });
+      /* ============================================================
+   ZOOM & PAN BẢN ĐỒ TỔNG QUAN (TỐI ƯU GPU - SIÊU MƯỢT)
+============================================================ */
+      const mapEl = document.getElementById("map");
+      const mapWrapper = document.querySelector(".map-wrapper");
+
+      let mapScale = 1;
+      let mapTranslateX = 0;
+      let mapTranslateY = 0;
+      let isMapDragging = false;
+      let mapStartDragX = 0;
+      let mapStartDragY = 0;
+      let rafId = null;
+
+      // Hàm cập nhật toạ độ tối ưu phần cứng qua GPU
+      function applyMapTransform() {
+        mapEl.style.transform = `translate3d(${mapTranslateX}px, ${mapTranslateY}px, 0) scale(${mapScale})`;
+        rafId = null;
+      }
+
+      function requestMapUpdate() {
+        if (!rafId) {
+          rafId = requestAnimationFrame(applyMapTransform);
+        }
+      }
+
+      // 1. Lăn chuột để phóng to / thu nhỏ
+      mapWrapper.addEventListener(
+        "wheel",
+        function (e) {
+          if (detail.classList.contains("active")) return;
+          e.preventDefault();
+
+          const rect = mapEl.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+
+          const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+          let newScale = Math.min(Math.max(1, mapScale * zoomFactor), 6);
+
+          if (newScale === 1) {
+            mapScale = 1;
+            mapTranslateX = 0;
+            mapTranslateY = 0;
+            requestMapUpdate();
+            return;
+          }
+
+          const ratio = 1 - newScale / mapScale;
+          mapTranslateX += mouseX * ratio;
+          mapTranslateY += mouseY * ratio;
+          mapScale = newScale;
+
+          requestMapUpdate();
+        },
+        { passive: false },
+      );
+
+      // 2. Kéo thả di chuyển (Pan) với requestAnimationFrame
+      mapWrapper.addEventListener("mousedown", function (e) {
+        if (detail.classList.contains("active")) return;
+
+        // Nếu click trúng marker thì không kích hoạt kéo map
+        if (e.target.closest(".marker")) return;
+
+        if (mapScale > 1) {
+          isMapDragging = true;
+          mapStartDragX = e.clientX - mapTranslateX;
+          mapStartDragY = e.clientY - mapTranslateY;
+          mapEl.style.cursor = "grabbing";
+        }
+      });
+
+      window.addEventListener("mousemove", function (e) {
+        if (!isMapDragging) return;
+        mapTranslateX = e.clientX - mapStartDragX;
+        mapTranslateY = e.clientY - mapStartDragY;
+        requestMapUpdate();
+      });
+
+      window.addEventListener("mouseup", function () {
+        if (isMapDragging) {
+          isMapDragging = false;
+          mapEl.style.cursor = "grab";
+        }
+      });
+    </script>
+    <div class="zoom-img" id="zoomImg">
+      <span onclick="closeZoom()">×</span>
+      <img id="zoomImage" />
+    </div>
+
+    <script>
+      function openZoom(src) {
+        document.getElementById("zoomImage").src = src;
+        document.getElementById("zoomImg").classList.add("show");
+      }
+
+      function closeZoom() {
+        document.getElementById("zoomImg").classList.remove("show");
+      }
+
+      document.getElementById("zoomImg").onclick = function (e) {
+        if (e.target === this) {
+          closeZoom();
+        }
+      };
+    </script>
+  </body>
+</html>
+```
