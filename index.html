@@ -1054,6 +1054,24 @@
         cursor: default;
       }
 
+      /* Bộ lọc phân loại: mỗi checkbox bật/tắt toàn bộ điểm cùng nhóm */
+      .legend-item {
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .legend-item .category-toggle {
+        width: 15px;
+        height: 15px;
+        flex: 0 0 15px;
+        accent-color: #22c55e;
+        cursor: pointer;
+      }
+
+      .marker.category-hidden {
+        display: none !important;
+      }
+
       /* Chấm tròn màu có viền và hiệu ứng phát sáng nhẹ */
       .legend-color {
         width: 14px;
@@ -1156,6 +1174,82 @@
           max-width: calc(100% - 30px) !important;
         }
       }
+      .image-button {
+        margin-left: auto;
+        padding: 5px 9px;
+        border: 1px solid #2563eb;
+        border-radius: 6px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .image-button:hover {
+        background: #dbeafe;
+      }
+
+      .image-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(0, 0, 0, 0.8);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .image-modal.open {
+        display: flex;
+      }
+
+      .image-modal-content {
+        position: relative;
+        background: white;
+        padding: 16px;
+        border-radius: 10px;
+        max-width: 95vw;
+        max-height: 95vh;
+        text-align: center;
+      }
+
+      .image-modal-content img {
+        display: block;
+        max-width: 88vw;
+        max-height: 78vh;
+        object-fit: contain;
+      }
+
+      .image-modal-content h3 {
+        margin: 0 40px 12px 0;
+      }
+
+      .image-modal-close {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        font-size: 26px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+      }
+      .legend-item-with-image {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .legend-item-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .image-button {
+        margin-left: 28px;
+      }
     </style>
   </head>
 
@@ -1180,25 +1274,84 @@
           <div class="map-legend">
             <div class="legend-title">PHÂN LOẠI ĐIỂM</div>
 
-            <div class="legend-item">
+            <label class="legend-item">
+              <input
+                class="category-toggle"
+                type="checkbox"
+                data-group="group-red"
+              />
               <span class="legend-color group-red"></span>
               <span>KV NGẬP LỤT, SƠ TÁN (11 ĐIỂM)</span>
-            </div>
-            <div class="legend-item">
+            </label>
+            <label class="legend-item">
+              <input
+                class="category-toggle"
+                type="checkbox"
+                data-group="group-green"
+              />
               <span class="legend-color group-green"></span>
-              <span>DK KV XẢY RA SẠT LỠ (5 ĐIỂM)</span>
-            </div>
-            <div class="legend-item">
+              <span>DK KV XẢY RA SẠT LỞ (5 ĐIỂM)</span>
+            </label>
+            <label class="legend-item">
+              <input
+                class="category-toggle"
+                type="checkbox"
+                data-group="group-blue"
+              />
               <span class="legend-color group-blue"></span>
               <span>TUYẾN ĐƯỜNG BỊ CHIA CẮT (7 ĐIỂM)</span>
-            </div>
-            <div class="legend-item">
+            </label>
+            <label class="legend-item">
+              <input
+                class="category-toggle"
+                type="checkbox"
+                data-group="group-yellow"
+              />
               <span class="legend-color group-yellow"></span>
               <span>ĐÊ KÈ CÓ NGUY CƠ SỰ CỐ</span>
-            </div>
-            <div class="legend-item">
+            </label>
+            <label class="legend-item">
+              <input
+                class="category-toggle"
+                type="checkbox"
+                data-group="group-orange"
+              />
               <span class="legend-color group-orange"></span>
               <span>THỜI GIAN CƠ ĐỘNG</span>
+            </label>
+            <label class="legend-item">
+              <input
+                class="category-toggle"
+                type="checkbox"
+                data-group="group-purple"
+              />
+              <span class="legend-color group-purple"></span>
+              <span>BÃI ĐỖ TRỰC THĂNG</span>
+            </label>
+
+            <div class="legend-item legend-item-with-image">
+              <label class="legend-item-label">
+                <input
+                  class="category-toggle"
+                  type="checkbox"
+                  data-group="group-green1"
+                />
+                <span class="legend-color group-green1"></span>
+                <span>NEO ĐẬU TÀU THUYỀN</span>
+              </label>
+
+              <button
+                type="button"
+                class="image-button"
+                onclick="
+                  showCategoryImage(
+                    'assets/pl2.png',
+                    'Lực lượng, phương tiện tham gia ứng phó sự cố thiên tai',
+                  )
+                "
+              >
+                LỰC LƯỢNG, PHƯƠNG TIỆN
+              </button>
             </div>
           </div>
           <div class="map" id="map">
@@ -1820,6 +1973,10 @@
             },
             {
               image: "assets/9_kdc67_thuy_trieu/9.3s.png",
+              title: "Nơi sơ tán",
+            },
+            {
+              image: "assets/9_kdc67_thuy_trieu/9.4s.png",
               title: "Nơi sơ tán",
             },
           ],
@@ -3002,6 +3159,28 @@
       preloadImages();
 
       /* ============================================================
+   LỌC ĐIỂM THEO PHÂN LOẠI
+   Mặc định ẩn tất cả; tích checkbox để hiện toàn bộ điểm cùng nhóm.
+============================================================ */
+
+      const categoryToggles = document.querySelectorAll(".category-toggle");
+      const mapMarkers = document.querySelectorAll(".map .marker");
+
+      // Khi mở trang, ẩn tất cả điểm và để các ô phân loại ở trạng thái bỏ chọn.
+      mapMarkers.forEach((marker) => marker.classList.add("category-hidden"));
+
+      categoryToggles.forEach((toggle) => {
+        toggle.addEventListener("change", () => {
+          const groupClass = toggle.dataset.group;
+          mapMarkers.forEach((marker) => {
+            if (marker.classList.contains(groupClass)) {
+              marker.classList.toggle("category-hidden", !toggle.checked);
+            }
+          });
+        });
+      });
+
+      /* ============================================================
    CLICK MARKER
 ============================================================ */
 
@@ -3447,7 +3626,46 @@
           closeZoom();
         }
       };
+      function showCategoryImage(imagePath, title) {
+        const modal = document.getElementById("categoryImageModal");
+        const image = document.getElementById("categoryImagePreview");
+
+        document.getElementById("categoryImageTitle").textContent = title;
+        image.src = imagePath;
+        modal.classList.add("open");
+      }
+
+      function closeCategoryImage() {
+        document.getElementById("categoryImageModal").classList.remove("open");
+      }
+
+      document
+        .getElementById("categoryImageModal")
+        .addEventListener("click", function (event) {
+          if (event.target === this) {
+            closeCategoryImage();
+          }
+        });
     </script>
+    <div class="image-modal" id="categoryImageModal">
+      <div class="image-modal-content">
+        <button
+          class="image-modal-close"
+          onclick="closeCategoryImage()"
+          aria-label="Đóng"
+        >
+          ×
+        </button>
+
+        <h3 id="categoryImageTitle"></h3>
+
+        <img
+          id="categoryImagePreview"
+          src="assets/pl2.png"
+          alt="Hình ảnh phân loại điểm"
+        />
+      </div>
+    </div>
   </body>
 </html>
 ```
